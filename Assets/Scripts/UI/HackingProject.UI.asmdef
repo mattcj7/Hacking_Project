@@ -1,0 +1,7 @@
+{
+  "name": "HackingProject.UI",
+  "references": [
+    "HackingProject.Infrastructure",
+    "HackingProject.Systems"
+  ]
+}

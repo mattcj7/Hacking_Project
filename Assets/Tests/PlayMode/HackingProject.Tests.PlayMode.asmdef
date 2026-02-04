@@ -1,0 +1,12 @@
+{
+  "name": "HackingProject.Tests.PlayMode",
+  "references": [
+    "HackingProject.Infrastructure",
+    "HackingProject.Systems",
+    "HackingProject.Game",
+    "HackingProject.UI"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

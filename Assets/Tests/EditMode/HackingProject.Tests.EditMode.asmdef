@@ -1,0 +1,15 @@
+{
+  "name": "HackingProject.Tests.EditMode",
+  "references": [
+    "HackingProject.Infrastructure",
+    "HackingProject.Systems",
+    "HackingProject.Game",
+    "HackingProject.UI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
