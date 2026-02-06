@@ -1,3 +1,4 @@
+using HackingProject.Infrastructure.Events;
 using UnityEngine;
 
 namespace HackingProject.Game
@@ -12,9 +13,15 @@ namespace HackingProject.Game
 
     public sealed class GameStateMachine
     {
+        private readonly EventBus _eventBus;
         private IGameState _currentState;
 
         public IGameState CurrentState => _currentState;
+
+        public GameStateMachine(EventBus eventBus)
+        {
+            _eventBus = eventBus ?? throw new System.ArgumentNullException(nameof(eventBus));
+        }
 
         public void ChangeState(IGameState nextState)
         {
@@ -42,6 +49,9 @@ namespace HackingProject.Game
             {
                 Debug.Log($"[GameStateMachine] {previousState.Name} -> {nextState.Name}");
             }
+
+            var previousStateName = previousState?.Name ?? "None";
+            _eventBus.Publish(new StateChangedEvent(previousStateName, nextState.Name));
 
             _currentState.Enter();
         }

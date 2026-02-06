@@ -19,3 +19,9 @@ Add entries like:
 - Decision: Use Unity documentation version 6000.3 and enforce guidance through `AGENTS.md` and `.codex/config.toml`.
 - Consequences: Consistent Unity version targeting, Input System usage, and safety constraints across future work.
 - Alternatives considered: Rely on ad-hoc reminders in tickets.
+
+## ADR-0004: Lightweight EventBus for Decoupling
+- Context: Systems need a minimal, testable way to publish/subscribe without hard references.
+- Decision: Add an instance-based `EventBus` with `IEvent` marker and explicit subscribe/unsubscribe tokens.
+- Consequences: Local event distribution without introducing a service locator or DI container.
+- Alternatives considered: Direct references between systems; static global event bus.
