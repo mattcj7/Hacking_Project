@@ -1,0 +1,4 @@
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+developer_instructions = """Target Unity 6.3 LTS (6000.3 documentation). Use the Input System package APIs only; avoid legacy UnityEngine.Input. Do not change package versions unless the ticket explicitly requires it. Keep hacking content fictional/simulated."""

@@ -1,8 +1,6 @@
 using System;
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-#endif
 
 namespace HackingProject.Game
 {
@@ -37,11 +35,7 @@ namespace HackingProject.Game
 
         private static bool IsGameplayRequested()
         {
-#if ENABLE_INPUT_SYSTEM
             return Keyboard.current != null && Keyboard.current.gKey.wasPressedThisFrame;
-#else
-            return Input.GetKeyDown(KeyCode.G);
-#endif
         }
     }
 }
