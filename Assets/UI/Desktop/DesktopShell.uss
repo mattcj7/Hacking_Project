@@ -7,6 +7,14 @@
   background-color: #0b1016;
 }
 
+.windows-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 48px;
+}
+
 .taskbar {
   position: absolute;
   left: 0;

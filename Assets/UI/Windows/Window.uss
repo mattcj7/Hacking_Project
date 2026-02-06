@@ -1,0 +1,37 @@
+.window-root {
+  position: absolute;
+  width: 420px;
+  height: 280px;
+  flex-direction: column;
+  background-color: #141c25;
+  border-width: 1px;
+  border-color: #2a3644;
+}
+
+.window-titlebar {
+  height: 32px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-color: #1a2330;
+}
+
+.window-title {
+  color: #d6e2f0;
+  font-size: 13px;
+  -unity-font-style: bold;
+}
+
+.window-close {
+  margin-left: auto;
+  width: 24px;
+  height: 20px;
+}
+
+.window-content {
+  flex-grow: 1;
+  padding: 8px;
+  background-color: #141c25;
+}

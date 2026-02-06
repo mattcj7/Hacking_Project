@@ -26,6 +26,12 @@ Add entries like:
 - Consequences: Local event distribution without introducing a service locator or DI container.
 - Alternatives considered: Direct references between systems; static global event bus.
 
+## ADR-0006: UI Toolkit Window Manager v1
+- Context: The OS shell needs a minimal windowing system for spawning, focus, drag, and close behavior.
+- Decision: Use a UI Toolkit window template with a lightweight `WindowManager`/`WindowView` and a dedicated desktop windows layer.
+- Consequences: Window behavior is centralized without introducing a global singleton.
+- Alternatives considered: IMGUI-based windows; a static global manager.
+
 ## ADR-0005: UI Toolkit Desktop Scaffold + Setup Tool
 - Context: The OS shell needs an initial desktop/taskbar scaffold and reproducible scene wiring.
 - Decision: Use UI Toolkit assets for the desktop shell and provide an Editor menu tool to wire `UIDocument` + `PanelSettings`.
