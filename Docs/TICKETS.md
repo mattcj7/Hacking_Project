@@ -1,42 +1,28 @@
-﻿## Ticket 0003 - Bootstrap scene + GameStateMachine
+﻿## Ticket 0005A - Fix UI Toolkit USS warnings (Unity 6.3 supported properties)
 
 **Goal:**  
-Create a deterministic startup flow with a `Bootstrap` scene and a simple `GameStateMachine` that transitions **Boot → MainMenu → Gameplay** with clear logging.
+Remove UI Toolkit USS warnings by replacing unsupported USS properties with Unity 6.3 (6000.3) supported equivalents.
+
+**Background / Issue:**  
+Unity Console warnings:
+- `Unknown property 'border-top-style'`
+- `Unknown property 'unity-font-style'` (should be `-unity-font-style`)
 
 **Non-goals:**  
-- No UI framework decisions yet (no UI Toolkit setup here)
-- No hacking simulation/tools/apps
-- No mission system
-- No save/load
+- Do not redesign the UI
+- Do not change UXML structure
+- Keep visual appearance the same (or as close as possible)
 
 **Acceptance criteria:**
-- [ ] Create folder `Assets/Scenes/` if missing
-- [ ] Create scene: `Assets/Scenes/Bootstrap.unity`
-- [ ] `Bootstrap` scene contains a single root GameObject (e.g. `Game`) with `GameBootstrapper` component
-- [ ] Implement `GameStateMachine` (pure C# class) and 3 states:
-  - `BootState`
-  - `MainMenuState`
-  - `GameplayState`
-- [ ] On Play in `Bootstrap`:
-  - [ ] Logs show transition `Boot → MainMenu` automatically
-  - [ ] Provide a simple way to trigger `MainMenu → Gameplay` (keypress `G` while in MainMenu), with logging
-- [ ] No singletons unless justified in code comments (prefer composition via `GameBootstrapper`)
-- [ ] Unity compiles with **zero errors**
-- [ ] Add a brief ADR entry describing the state-machine approach
+- [ ] In `Assets/UI/Desktop/DesktopShell.uss`, remove any `border-top-style` usage
+  - [ ] Replace with supported properties (e.g. `border-top-width` + `border-top-color`)
+- [ ] Replace `unity-font-style` with `-unity-font-style`
+- [ ] Unity Console shows **0 USS warnings** related to `DesktopShell.uss`
 
 **Files allowed to edit:**  
-- `Assets/Scenes/**`
-- `Assets/Scripts/Game/**`
-- `Docs/ADR.md`
+- `Assets/UI/Desktop/DesktopShell.uss`
 
-**Implementation notes:**  
-- Put scripts under `Assets/Scripts/Game/`
-- Use namespaces like `HackingProject.Game` (stay consistent with Ticket 0002 assemblies)
-- Logging via `Debug.Log` is fine
-
-**Test plan:**  
-1. Open `Assets/Scenes/Bootstrap.unity`  
-2. Press Play  
-3. Confirm Console logs show `Boot → MainMenu`  
-4. Press `G` to transition to `Gameplay` and confirm logs  
-5. Confirm Console has **0 errors**
+**Test plan:**
+1. Open Unity project
+2. Confirm Console has 0 USS warnings (or specifically none referencing `DesktopShell.uss`)
+3. Press Play in `Bootstrap` and confirm desktop/taskbar still looks correct

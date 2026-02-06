@@ -1,0 +1,31 @@
+.desktop-root {
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #0b1016;
+}
+
+.taskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 16px;
+  padding-right: 16px;
+  background-color: #111822;
+  border-top-width: 1px;
+  border-top-color: #1b2733;
+}
+
+.taskbar-label {
+  color: #d6e2f0;
+  font-size: 14px;
+  -unity-font-style: bold;
+}

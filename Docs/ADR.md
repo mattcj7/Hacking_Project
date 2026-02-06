@@ -25,3 +25,9 @@ Add entries like:
 - Decision: Add an instance-based `EventBus` with `IEvent` marker and explicit subscribe/unsubscribe tokens.
 - Consequences: Local event distribution without introducing a service locator or DI container.
 - Alternatives considered: Direct references between systems; static global event bus.
+
+## ADR-0005: UI Toolkit Desktop Scaffold + Setup Tool
+- Context: The OS shell needs an initial desktop/taskbar scaffold and reproducible scene wiring.
+- Decision: Use UI Toolkit assets for the desktop shell and provide an Editor menu tool to wire `UIDocument` + `PanelSettings`.
+- Consequences: Consistent UI setup with minimal manual scene edits.
+- Alternatives considered: Manual scene wiring without a setup tool; IMGUI-based shell.
