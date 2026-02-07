@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Time;
 using HackingProject.UI.Apps;
 using HackingProject.UI.Windows;
 using UnityEngine;
@@ -24,11 +25,14 @@ namespace HackingProject.UI.Desktop
         private Label _clockLabel;
         private VisualElement _windowsLayer;
         private VisualElement _taskbarApps;
-        private float _nextUpdateTime;
         private WindowManager _windowManager;
         private AppRegistry _appRegistry;
         private AppLauncher _appLauncher;
+        private ITimeServiceProvider _timeServiceProvider;
+        private IDisposable _timeSubscription;
         private bool _loggedMissingTemplate;
+        private bool _loggedMissingTimeService;
+        private bool _hasStarted;
 
         private void OnEnable()
         {
@@ -126,22 +130,22 @@ namespace HackingProject.UI.Desktop
                 PopulateTaskbar();
             }
 
-            UpdateClock();
+            if (_hasStarted)
+            {
+                TryHookTimeService();
+            }
         }
 
-        private void Update()
+        private void Start()
         {
-            if (_clockLabel == null)
-            {
-                return;
-            }
+            _hasStarted = true;
+            TryHookTimeService();
+        }
 
-            if (Time.unscaledTime < _nextUpdateTime)
-            {
-                return;
-            }
-
-            UpdateClock();
+        private void OnDisable()
+        {
+            _timeSubscription?.Dispose();
+            _timeSubscription = null;
         }
 
         private void PopulateTaskbar()
@@ -162,10 +166,55 @@ namespace HackingProject.UI.Desktop
             }
         }
 
-        private void UpdateClock()
+        private void TryHookTimeService()
         {
-            _clockLabel.text = DateTime.Now.ToString("HH:mm:ss");
-            _nextUpdateTime = Time.unscaledTime + 1f;
+            if (_timeSubscription != null || _clockLabel == null)
+            {
+                return;
+            }
+
+            if (_timeServiceProvider == null)
+            {
+                _timeServiceProvider = FindTimeServiceProvider();
+            }
+
+            if (_timeServiceProvider == null || _timeServiceProvider.EventBus == null || _timeServiceProvider.TimeService == null)
+            {
+                if (_hasStarted && !_loggedMissingTimeService)
+                {
+                    Debug.LogWarning("[DesktopShellController] TimeService provider not found.");
+                    _loggedMissingTimeService = true;
+                }
+
+                return;
+            }
+
+            _timeSubscription = _timeServiceProvider.EventBus.Subscribe<TimeSecondTickedEvent>(OnTimeSecondTicked);
+            UpdateClock(_timeServiceProvider.TimeService.CurrentTime);
+        }
+
+        private void OnTimeSecondTicked(TimeSecondTickedEvent evt)
+        {
+            UpdateClock(evt.CurrentTime);
+        }
+
+        private void UpdateClock(DateTime time)
+        {
+            _clockLabel.text = TimeService.FormatTime(time);
+        }
+
+        private static ITimeServiceProvider FindTimeServiceProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is ITimeServiceProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
         }
     }
 }

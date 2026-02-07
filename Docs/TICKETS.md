@@ -1,27 +1,21 @@
-﻿## Ticket 0007B - Remove unsupported USS pseudo-class :last-child (fix spacing without warnings)
+﻿## Ticket 0008A - Taskbar clock shows seconds (HH:mm:ss)
 
 **Goal:**  
-Eliminate the USS warning "Unknown pseudo class last-child" while keeping taskbar button spacing.
-
-**Background / Issue:**  
-Unity UI Toolkit does not support `:last-child`, causing:
-`Unknown pseudo class "last-child" in StyleSheet DesktopShell`
+Change the taskbar clock display format from `HH:mm` to `HH:mm:ss`.
 
 **Non-goals:**  
-- No UI redesign
-- No UXML changes unless required
+- No changes to TimeService tick rate (still once per second)
+- No UI layout changes
 
 **Acceptance criteria:**
-- [ ] Remove any `:last-child` usage from `Assets/UI/Desktop/DesktopShell.uss`
-- [ ] Maintain spacing between taskbar app buttons
-- [ ] Unity Console shows **0 USS warnings** about `last-child`
-- [ ] (Optional) If desired, implement “no trailing gap” by setting the last button marginRight to 0 in code
+- [ ] Taskbar clock displays `HH:mm:ss`
+- [ ] EditMode tests updated accordingly
+- [ ] Unity compiles with 0 errors and tests pass
 
 **Files allowed to edit:**
-- `Assets/UI/Desktop/DesktopShell.uss`
-- `Assets/Scripts/UI/**` (only if implementing optional code spacing fix)
+- `Assets/Scripts/UI/Desktop/**`
+- `Assets/Tests/EditMode/**`
 
 **Test plan:**
-1. Open Unity project
-2. Confirm Console shows no USS warnings about `last-child`
-3. Press Play in Bootstrap and verify taskbar app buttons are spaced correctly
+1. Run EditMode tests (all green)
+2. Play Bootstrap scene and confirm seconds tick visibly
