@@ -1,39 +1,59 @@
-﻿## Ticket 0010A - Auto-assign AppCatalog (Setup tool + Editor self-heal)
+﻿## Ticket 0011 - Simulated filesystem v1 (Virtual FS model + File Manager reads it)
 
 **Goal:**  
-Ensure the taskbar app buttons always appear by guaranteeing `DesktopShellController.AppCatalog` is assigned automatically.
-
-**Background / Issue:**  
-Runtime warning:
-`[DesktopShellController] App catalog is not assigned.`
-Result: Terminal and File Manager buttons do not appear.
+Create a lightweight **virtual filesystem (VFS)** model (folders/files) and update the File Manager placeholder window to display the VFS tree/path contents.
 
 **Non-goals:**  
-- No new app functionality
-- No UI redesign
-- No package changes
-- No Player Settings changes
+- No real OS file access (must remain simulated)
+- No persistence yet (save/load integration later)
+- No drag/drop, rename, delete yet
+- No terminal commands yet (later ticket)
 
 **Acceptance criteria:**
-- [ ] `Tools > Hacking Project > Setup Desktop UI` assigns the default AppCatalog to `DesktopShellController` if missing:
-  - `Assets/ScriptableObjects/Apps/AppCatalog_Default.asset`
-- [ ] Setup tool persists the assignment (Undo + SetDirty + MarkSceneDirty) and logs one confirmation message.
-- [ ] `DesktopShellController` includes an Editor-only self-heal:
-  - If AppCatalog is null in Editor, attempts to load the default catalog via `AssetDatabase.LoadAssetAtPath<AppCatalogSO>(...)`
-  - If still null, logs a single ERROR with expected path and scene/object name
-- [ ] Play Mode no longer logs "App catalog is not assigned" under normal conditions
-- [ ] Taskbar shows Terminal + File Manager buttons sourced from the catalog
-- [ ] Unity compiles with 0 errors and tests remain green
+- [ ] Add VFS core models in Infrastructure:
+  - [ ] `VfsNode` base (id, name, parent id)
+  - [ ] `VfsFolder` and `VfsFile` (file has size + optional text content)
+  - [ ] `VirtualFileSystem` with:
+    - [ ] create folder/file APIs
+    - [ ] `GetChildren(folderId)` and `TryGetNode(id)`
+    - [ ] `ResolvePath("/home/user")` style lookup (basic; supports `/` root + folder names)
+- [ ] Create a default VFS factory (pure code or ScriptableObject) that builds:
+  - `/home/user/` with a couple folders (e.g. `docs`, `downloads`)
+  - at least 3 files (e.g. `readme.txt`, `todo.txt`, `notes.txt`)
+- [ ] Integrate into bootstrap:
+  - [ ] `GameBootstrapper` owns a single `VirtualFileSystem` instance
+  - [ ] Expose it to UI layer via constructor injection or via a small `GameContext` object (no globals)
+- [ ] Update File Manager window placeholder:
+  - [ ] When File Manager app opens, it shows:
+    - current path (start at `/home/user`)
+    - list of child entries (folders + files)
+  - [ ] Clicking a folder navigates into it and refreshes list
+  - [ ] Back button goes to parent (stop at root)
+- [ ] UI Toolkit for File Manager view:
+  - [ ] Create `Assets/UI/Apps/FileManager/FileManagerView.uxml` + `.uss`
+  - [ ] Create controller: `Assets/Scripts/UI/Apps/FileManager/FileManagerController.cs`
+- [ ] EditMode tests:
+  - [ ] Path resolution works for `/` and `/home/user`
+  - [ ] Creating folders/files results in expected children
+- [ ] Unity compiles with 0 errors, tests pass, and Play Mode shows File Manager browsing VFS
 
-**Files allowed to edit:**
-- `Assets/Editor/**`
-- `Assets/Scripts/UI/Desktop/**`
-- `Assets/Scripts/UI/Apps/**` (only if needed)
-- `Assets/Scenes/**` (only if needed)
+**Files allowed to edit:**  
+- `Assets/Scripts/Infrastructure/**`
+- `Assets/Scripts/Game/**`
+- `Assets/Scripts/UI/**`
+- `Assets/UI/**`
+- `Assets/Tests/EditMode/**`
+- `Docs/ADR.md`
+
+**Implementation notes:**
+- Keep it simple: ids can be GUID strings or ints
+- Keep allocations low: avoid rebuilding entire lists per frame; update on navigation only
+- Still a placeholder app; focus on correctness and clean separation
 
 **Test plan:**
-1. Set DesktopShellController.AppCatalog = None (unassigned)
-2. Run: Tools > Hacking Project > Setup Desktop UI
-3. Press Play in Bootstrap
-4. Confirm no "App catalog is not assigned" warning and taskbar buttons appear
-5. Confirm Console has 0 errors
+1. Run EditMode tests (all green)
+2. Play Bootstrap
+3. Launch File Manager from taskbar
+4. Confirm it starts at `/home/user`
+5. Click into `docs`/`downloads` and back out
+6. Confirm Console has 0 errors
