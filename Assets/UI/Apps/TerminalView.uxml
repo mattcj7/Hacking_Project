@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="TerminalView.uss" />
+  <ui:VisualElement class="terminal-root">
+    <ui:ScrollView name="output-scroll" class="terminal-output" />
+    <ui:TextField name="terminal-input" class="terminal-input" multiline="false" />
+  </ui:VisualElement>
+</ui:UXML>

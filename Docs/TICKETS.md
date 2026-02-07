@@ -1,59 +1,35 @@
-﻿## Ticket 0011 - Simulated filesystem v1 (Virtual FS model + File Manager reads it)
+﻿## Ticket 0013 - File Manager UI matches Terminal theme (shared theme USS)
 
 **Goal:**  
-Create a lightweight **virtual filesystem (VFS)** model (folders/files) and update the File Manager placeholder window to display the VFS tree/path contents.
+Make the File Manager window match the same dark/legible color scheme as the Terminal window, using a shared theme stylesheet so both apps stay consistent.
 
 **Non-goals:**  
-- No real OS file access (must remain simulated)
-- No persistence yet (save/load integration later)
-- No drag/drop, rename, delete yet
-- No terminal commands yet (later ticket)
+- No new File Manager features (navigation stays as-is)
+- No changes to VFS logic
+- No layout redesign beyond color/typography/padding adjustments
 
 **Acceptance criteria:**
-- [ ] Add VFS core models in Infrastructure:
-  - [ ] `VfsNode` base (id, name, parent id)
-  - [ ] `VfsFolder` and `VfsFile` (file has size + optional text content)
-  - [ ] `VirtualFileSystem` with:
-    - [ ] create folder/file APIs
-    - [ ] `GetChildren(folderId)` and `TryGetNode(id)`
-    - [ ] `ResolvePath("/home/user")` style lookup (basic; supports `/` root + folder names)
-- [ ] Create a default VFS factory (pure code or ScriptableObject) that builds:
-  - `/home/user/` with a couple folders (e.g. `docs`, `downloads`)
-  - at least 3 files (e.g. `readme.txt`, `todo.txt`, `notes.txt`)
-- [ ] Integrate into bootstrap:
-  - [ ] `GameBootstrapper` owns a single `VirtualFileSystem` instance
-  - [ ] Expose it to UI layer via constructor injection or via a small `GameContext` object (no globals)
-- [ ] Update File Manager window placeholder:
-  - [ ] When File Manager app opens, it shows:
-    - current path (start at `/home/user`)
-    - list of child entries (folders + files)
-  - [ ] Clicking a folder navigates into it and refreshes list
-  - [ ] Back button goes to parent (stop at root)
-- [ ] UI Toolkit for File Manager view:
-  - [ ] Create `Assets/UI/Apps/FileManager/FileManagerView.uxml` + `.uss`
-  - [ ] Create controller: `Assets/Scripts/UI/Apps/FileManager/FileManagerController.cs`
-- [ ] EditMode tests:
-  - [ ] Path resolution works for `/` and `/home/user`
-  - [ ] Creating folders/files results in expected children
-- [ ] Unity compiles with 0 errors, tests pass, and Play Mode shows File Manager browsing VFS
+- [ ] Add a shared theme USS file (single source of truth):
+  - `Assets/UI/Theme/HackingOSTheme.uss`
+- [ ] Theme defines common look:
+  - [ ] Dark panel background
+  - [ ] High-contrast text color
+  - [ ] Subtle borders/dividers consistent with Terminal
+  - [ ] Reasonable font sizing and padding for readability
+- [ ] File Manager uses the shared theme:
+  - [ ] `FileManagerView.uxml` includes `HackingOSTheme.uss` (preferred) OR controller adds it at runtime
+  - [ ] Remove/adjust conflicting styles so File Manager matches Terminal
+- [ ] Any input/list elements in File Manager are readable (no white background with light text)
+- [ ] No USS warnings (avoid unsupported props like `gap` and unsupported pseudo-classes like `:last-child`)
+- [ ] Unity compiles with 0 errors/warnings and tests remain green
 
-**Files allowed to edit:**  
-- `Assets/Scripts/Infrastructure/**`
-- `Assets/Scripts/Game/**`
-- `Assets/Scripts/UI/**`
-- `Assets/UI/**`
-- `Assets/Tests/EditMode/**`
-- `Docs/ADR.md`
-
-**Implementation notes:**
-- Keep it simple: ids can be GUID strings or ints
-- Keep allocations low: avoid rebuilding entire lists per frame; update on navigation only
-- Still a placeholder app; focus on correctness and clean separation
+**Files allowed to edit:**
+- `Assets/UI/Theme/**`
+- `Assets/UI/Apps/FileManager/**`
+- `Assets/Scripts/UI/Apps/FileManager/**` (only if needed to attach theme at runtime)
 
 **Test plan:**
-1. Run EditMode tests (all green)
-2. Play Bootstrap
-3. Launch File Manager from taskbar
-4. Confirm it starts at `/home/user`
-5. Click into `docs`/`downloads` and back out
-6. Confirm Console has 0 errors
+1. Play Bootstrap
+2. Open Terminal and note its scheme
+3. Open File Manager and confirm it matches Terminal scheme (background + text + borders)
+4. Confirm Console has 0 errors/warnings

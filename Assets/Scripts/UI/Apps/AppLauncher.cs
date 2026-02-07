@@ -16,6 +16,7 @@ namespace HackingProject.UI.Apps
         private VirtualFileSystem _vfs;
 
         private const string FileManagerStartPath = "/home/user";
+        private const string TerminalStartPath = "/home/user";
 
         public AppLauncher(WindowManager windowManager)
         {
@@ -91,22 +92,32 @@ namespace HackingProject.UI.Apps
 
         private bool TryBuildAppContent(AppDefinitionSO app, WindowView view, string displayName)
         {
-            if (app.Id != AppId.FileManager)
-            {
-                return false;
-            }
-
             if (_vfs == null || app.ViewTemplate == null)
             {
                 return false;
             }
 
-            var root = app.ViewTemplate.CloneTree();
-            view.ContentRoot.Clear();
-            view.ContentRoot.Add(root);
-            var controller = new FileManagerController(root, _vfs);
-            controller.Initialize(FileManagerStartPath);
-            return true;
+            if (app.Id == AppId.FileManager)
+            {
+                var root = app.ViewTemplate.CloneTree();
+                view.ContentRoot.Clear();
+                view.ContentRoot.Add(root);
+                var controller = new FileManagerController(root, _vfs);
+                controller.Initialize(FileManagerStartPath);
+                return true;
+            }
+
+            if (app.Id == AppId.Terminal)
+            {
+                var root = app.ViewTemplate.CloneTree();
+                view.ContentRoot.Clear();
+                view.ContentRoot.Add(root);
+                var controller = new TerminalController(root, _vfs);
+                controller.Initialize();
+                return true;
+            }
+
+            return false;
         }
     }
 }

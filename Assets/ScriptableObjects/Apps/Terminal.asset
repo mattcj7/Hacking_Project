@@ -17,4 +17,4 @@ MonoBehaviour:
   Icon: {fileID: 0}
   DefaultWindowPosition: {x: 0, y: 0}
   DefaultWindowSize: {x: 0, y: 0}
-  ViewTemplate: {fileID: 0}
+  ViewTemplate: {fileID: 9197481963319205126, guid: 5d175d25e9584413848a5b8a61603be6, type: 3}

@@ -1,4 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="Assets/UI/Theme/HackingOSTheme.uss" />
   <ui:Style src="FileManagerView.uss" />
   <ui:VisualElement class="filemanager-root">
     <ui:VisualElement class="filemanager-header">

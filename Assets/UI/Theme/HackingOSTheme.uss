@@ -1,0 +1,29 @@
+.filemanager-root {
+  background-color: #0b0f14;
+  color: #e3f2ff;
+}
+
+.filemanager-header {
+  background-color: #121923;
+  border-bottom-width: 1px;
+  border-bottom-color: #2a3a4d;
+}
+
+.filemanager-path {
+  color: #c8d8ea;
+}
+
+.filemanager-entries {
+  background-color: #0b0f14;
+}
+
+.filemanager-root Button {
+  background-color: #141c25;
+  color: #e3f2ff;
+  border-width: 1px;
+  border-color: #243140;
+}
+
+.filemanager-root .unity-text-element {
+  color: #e3f2ff;
+}

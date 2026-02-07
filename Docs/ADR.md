@@ -67,3 +67,9 @@ Add entries like:
 - Decision: Implement an in-memory VFS with directories/files, path resolution, and a default factory seeded under `/home/user`.
 - Consequences: UI can browse a consistent, testable file tree that is safe and deterministic.
 - Alternatives considered: Accessing the real filesystem; static/global data without path resolution.
+
+## ADR-0012: Terminal Command Layer Over VFS
+- Context: The Terminal needs basic shell-like commands without executing real OS operations.
+- Decision: Implement a pure C# command parser/executor that operates on the in-memory VFS (help/pwd/ls/cd/cat/clear).
+- Consequences: Terminal behavior is deterministic, safe, and testable while remaining entirely fictional.
+- Alternatives considered: Executing OS commands; scripting with external interpreters.
