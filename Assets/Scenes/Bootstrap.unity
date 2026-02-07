@@ -194,6 +194,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HackingProject.UI::HackingProject.UI.Desktop.DesktopShellController
   windowTemplate: {fileID: 9197481963319205126, guid: 28254797151a492080c98a10dc18b487, type: 3}
+  appCatalog: {fileID: 0}
 --- !u!114 &210525796
 MonoBehaviour:
   m_ObjectHideFlags: 0

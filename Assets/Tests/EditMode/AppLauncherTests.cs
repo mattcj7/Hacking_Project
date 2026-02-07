@@ -2,6 +2,7 @@ using HackingProject.UI.Apps;
 using HackingProject.UI.Windows;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace HackingProject.Tests.EditMode
@@ -15,8 +16,8 @@ namespace HackingProject.Tests.EditMode
         {
             var manager = new WindowManager(new VisualElement(), LoadTemplate());
             var launcher = new AppLauncher(manager);
-            var terminal = new AppDefinition(AppId.Terminal, "Terminal");
-            var fileManager = new AppDefinition(AppId.FileManager, "File Manager");
+            var terminal = CreateDefinition(AppId.Terminal, "Terminal");
+            var fileManager = CreateDefinition(AppId.FileManager, "File Manager");
 
             var first = launcher.LaunchOrFocus(terminal);
             var second = launcher.LaunchOrFocus(fileManager);
@@ -26,6 +27,14 @@ namespace HackingProject.Tests.EditMode
             Assert.AreSame(first, reopened);
             Assert.AreSame(reopened, manager.Windows[manager.Windows.Count - 1]);
             Assert.AreSame(second, manager.Windows[0]);
+        }
+
+        private static AppDefinitionSO CreateDefinition(AppId id, string displayName)
+        {
+            var definition = ScriptableObject.CreateInstance<AppDefinitionSO>();
+            definition.Id = id;
+            definition.DisplayName = displayName;
+            return definition;
         }
 
         private static VisualTreeAsset LoadTemplate()

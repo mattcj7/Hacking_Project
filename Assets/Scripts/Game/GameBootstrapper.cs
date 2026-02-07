@@ -2,22 +2,25 @@ using System;
 using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
+using HackingProject.Infrastructure.Vfs;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace HackingProject.Game
 {
-    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider
+    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider
     {
         private EventBus _eventBus;
         private GameStateMachine _stateMachine;
         private SaveService _saveService;
         private SaveGameData _saveData;
         private TimeService _timeService;
+        private VirtualFileSystem _vfs;
         private IDisposable _stateChangedSubscription;
 
         public EventBus EventBus => _eventBus;
         public TimeService TimeService => _timeService;
+        public VirtualFileSystem Vfs => _vfs;
 
         private void Awake()
         {
@@ -25,6 +28,7 @@ namespace HackingProject.Game
             _stateMachine = new GameStateMachine(_eventBus);
             _timeService = new TimeService(_eventBus);
             _saveService = new SaveService(Application.persistentDataPath);
+            _vfs = DefaultVfsFactory.Create();
 
             var gameplayState = new GameplayState();
             var mainMenuState = new MainMenuState(_stateMachine, gameplayState);

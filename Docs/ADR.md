@@ -55,3 +55,15 @@ Add entries like:
 - Decision: Serialize a payload+envelope using `JsonUtility`, write via temp + replace, keep a `.bak` fallback, and store a SHA-256 hash of the payload for integrity checks.
 - Consequences: Saves are portable, atomic, and corruption-evident without introducing encryption or cloud dependencies.
 - Alternatives considered: Direct payload-only saves; no integrity check; non-atomic overwrites.
+
+## ADR-0010: ScriptableObject App Catalog
+- Context: Apps need to be content-driven without hardcoded lists in UI controllers.
+- Decision: Define `AppDefinitionSO` assets and an `AppCatalogSO` that lists installed apps, with the taskbar building buttons from the catalog at runtime.
+- Consequences: App lists can be edited via assets without code changes while keeping single-instance launch behavior.
+- Alternatives considered: Hardcoded app lists; data in JSON/config files.
+
+## ADR-0011: Simulated Virtual File System
+- Context: File Manager needs a fictional file system without touching the host OS.
+- Decision: Implement an in-memory VFS with directories/files, path resolution, and a default factory seeded under `/home/user`.
+- Consequences: UI can browse a consistent, testable file tree that is safe and deterministic.
+- Alternatives considered: Accessing the real filesystem; static/global data without path resolution.

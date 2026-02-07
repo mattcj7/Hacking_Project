@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HackingProject.Infrastructure.Vfs;
 using HackingProject.UI.Windows;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,14 +13,27 @@ namespace HackingProject.UI.Apps
         private readonly WindowManager _windowManager;
         private Vector2 _nextSpawnPosition = new Vector2(64f, 72f);
         private readonly Vector2 _spawnOffset = new Vector2(48f, 36f);
+        private VirtualFileSystem _vfs;
+
+        private const string FileManagerStartPath = "/home/user";
 
         public AppLauncher(WindowManager windowManager)
         {
             _windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
         }
 
-        public WindowView LaunchOrFocus(AppDefinition app)
+        public void SetVirtualFileSystem(VirtualFileSystem vfs)
         {
+            _vfs = vfs;
+        }
+
+        public WindowView LaunchOrFocus(AppDefinitionSO app)
+        {
+            if (app == null)
+            {
+                throw new ArgumentNullException(nameof(app));
+            }
+
             if (_openWindows.TryGetValue(app.Id, out var existing))
             {
                 if (IsWindowOpen(existing))
@@ -31,8 +45,20 @@ namespace HackingProject.UI.Apps
                 _openWindows.Remove(app.Id);
             }
 
-            var view = _windowManager.CreateWindow(app.DisplayName, _nextSpawnPosition);
-            SetPlaceholderContent(view, app.DisplayName);
+            var displayName = string.IsNullOrWhiteSpace(app.DisplayName) ? app.name : app.DisplayName;
+            var position = app.DefaultWindowPosition == Vector2.zero ? _nextSpawnPosition : app.DefaultWindowPosition;
+            var view = _windowManager.CreateWindow(displayName, position);
+            if (app.DefaultWindowSize != Vector2.zero)
+            {
+                view.Root.style.width = app.DefaultWindowSize.x;
+                view.Root.style.height = app.DefaultWindowSize.y;
+            }
+
+            if (!TryBuildAppContent(app, view, displayName))
+            {
+                SetPlaceholderContent(view, displayName);
+            }
+
             _openWindows[app.Id] = view;
             _nextSpawnPosition += _spawnOffset;
             return view;
@@ -61,6 +87,26 @@ namespace HackingProject.UI.Apps
 
             view.ContentRoot.Clear();
             view.ContentRoot.Add(new Label($"{appName} (placeholder)"));
+        }
+
+        private bool TryBuildAppContent(AppDefinitionSO app, WindowView view, string displayName)
+        {
+            if (app.Id != AppId.FileManager)
+            {
+                return false;
+            }
+
+            if (_vfs == null || app.ViewTemplate == null)
+            {
+                return false;
+            }
+
+            var root = app.ViewTemplate.CloneTree();
+            view.ContentRoot.Clear();
+            view.ContentRoot.Add(root);
+            var controller = new FileManagerController(root, _vfs);
+            controller.Initialize(FileManagerStartPath);
+            return true;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using HackingProject.Infrastructure.Time;
+using HackingProject.Infrastructure.Vfs;
 using HackingProject.UI.Apps;
 using HackingProject.UI.Windows;
 using UnityEngine;
@@ -31,6 +32,7 @@ namespace HackingProject.UI.Desktop
         private AppRegistry _appRegistry;
         private AppLauncher _appLauncher;
         private ITimeServiceProvider _timeServiceProvider;
+        private IVfsProvider _vfsProvider;
         private IDisposable _timeSubscription;
         private bool _loggedMissingTemplate;
         private bool _loggedMissingAppCatalog;
@@ -137,6 +139,7 @@ namespace HackingProject.UI.Desktop
             if (_appLauncher == null && _windowManager != null)
             {
                 _appLauncher = new AppLauncher(_windowManager);
+                TryHookVfs();
             }
 
             if (_taskbarApps != null && _appRegistry != null && _appLauncher != null)
@@ -147,6 +150,7 @@ namespace HackingProject.UI.Desktop
             if (_hasStarted)
             {
                 TryHookTimeService();
+                TryHookVfs();
             }
         }
 
@@ -154,6 +158,7 @@ namespace HackingProject.UI.Desktop
         {
             _hasStarted = true;
             TryHookTimeService();
+            TryHookVfs();
         }
 
         private void OnDisable()
@@ -223,6 +228,26 @@ namespace HackingProject.UI.Desktop
             UpdateClock(_timeServiceProvider.TimeService.CurrentTime);
         }
 
+        private void TryHookVfs()
+        {
+            if (_appLauncher == null)
+            {
+                return;
+            }
+
+            if (_vfsProvider == null)
+            {
+                _vfsProvider = FindVfsProvider();
+            }
+
+            if (_vfsProvider?.Vfs == null)
+            {
+                return;
+            }
+
+            _appLauncher.SetVirtualFileSystem(_vfsProvider.Vfs);
+        }
+
         private void OnTimeSecondTicked(TimeSecondTickedEvent evt)
         {
             UpdateClock(evt.CurrentTime);
@@ -239,6 +264,20 @@ namespace HackingProject.UI.Desktop
             for (var i = 0; i < behaviours.Length; i++)
             {
                 if (behaviours[i] is ITimeServiceProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
+        }
+
+        private static IVfsProvider FindVfsProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IVfsProvider provider)
                 {
                     return provider;
                 }

@@ -1,0 +1,42 @@
+.filemanager-root {
+  flex-direction: column;
+  flex-grow: 1;
+  background-color: #121922;
+  color: #d6e2f0;
+}
+
+.filemanager-header {
+  flex-direction: row;
+  align-items: center;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  background-color: #182230;
+  border-bottom-width: 1px;
+  border-bottom-color: #253140;
+}
+
+.filemanager-back {
+  width: 64px;
+  margin-right: 8px;
+}
+
+.filemanager-path {
+  font-size: 12px;
+  color: #c4d2e3;
+}
+
+.filemanager-entries {
+  flex-grow: 1;
+  padding: 8px;
+}
+
+.filemanager-entry {
+  justify-content: flex-start;
+  margin-bottom: 6px;
+}
+
+.filemanager-entry-dir {
+  -unity-font-style: bold;
+}

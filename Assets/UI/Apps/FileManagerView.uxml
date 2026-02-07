@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="FileManagerView.uss" />
+  <ui:VisualElement class="filemanager-root">
+    <ui:VisualElement class="filemanager-header">
+      <ui:Button name="back-button" text="Back" class="filemanager-back" />
+      <ui:Label name="path-label" text="/" class="filemanager-path" />
+    </ui:VisualElement>
+    <ui:ScrollView name="entries" class="filemanager-entries" />
+  </ui:VisualElement>
+</ui:UXML>
