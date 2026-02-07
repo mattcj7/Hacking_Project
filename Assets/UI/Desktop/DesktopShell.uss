@@ -32,6 +32,13 @@
   border-top-color: #1b2733;
 }
 
+.taskbar-apps {
+  flex-direction: row;
+  align-items: center;
+  flex-grow: 1;
+  justify-content: center;
+}
+
 .taskbar-label {
   color: #d6e2f0;
   font-size: 14px;
