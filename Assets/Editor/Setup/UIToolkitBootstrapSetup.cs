@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using HackingProject.UI.Apps;
 using HackingProject.UI.Desktop;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -17,6 +18,7 @@ namespace HackingProject.Editor.Setup
         private const string PanelSettingsPath = "Assets/UI/Settings/MainPanelSettings.asset";
         private const string UxmlPath = "Assets/UI/Desktop/DesktopShell.uxml";
         private const string WindowUxmlPath = "Assets/UI/Windows/Window.uxml";
+        private const string AppCatalogPath = "Assets/ScriptableObjects/Apps/AppCatalog_Default.asset";
         private const string DesktopObjectName = "Desktop UI";
         private const int Display1Index = 0;
         private static bool _setupQueued;
@@ -24,6 +26,7 @@ namespace HackingProject.Editor.Setup
         private static UnityEngine.Object _previousActive;
         private static readonly string[] WindowSearchFilter = { "Window t:VisualTreeAsset" };
         private const string WindowTemplatePropertyName = "windowTemplate";
+        private const string AppCatalogPropertyName = "appCatalog";
 
         [MenuItem(MenuPath)]
         public static void SetupDesktopUI()
@@ -64,6 +67,12 @@ namespace HackingProject.Editor.Setup
                     return;
                 }
 
+                var appCatalog = AssetDatabase.LoadAssetAtPath<AppCatalogSO>(AppCatalogPath);
+                if (appCatalog == null)
+                {
+                    Debug.LogWarning($"[UIToolkitBootstrapSetup] Missing AppCatalog at {AppCatalogPath}.");
+                }
+
                 var panelSettings = EnsurePanelSettings();
                 var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
@@ -89,6 +98,7 @@ namespace HackingProject.Editor.Setup
                     var serializedController = new SerializedObject(controller);
                     serializedController.Update();
                     var templateProperty = serializedController.FindProperty(WindowTemplatePropertyName);
+                    var catalogProperty = serializedController.FindProperty(AppCatalogPropertyName);
                     if (templateProperty != null)
                     {
                         if (templateProperty.objectReferenceValue != windowTemplate)
@@ -101,6 +111,16 @@ namespace HackingProject.Editor.Setup
                         }
 
                         Debug.Log($"[UIToolkitBootstrapSetup] Assigned window template: {windowTemplatePath}");
+                    }
+
+                    if (catalogProperty != null && catalogProperty.objectReferenceValue == null && appCatalog != null)
+                    {
+                        Undo.RecordObject(controller, "Assign App Catalog");
+                        catalogProperty.objectReferenceValue = appCatalog;
+                        serializedController.ApplyModifiedProperties();
+                        EditorUtility.SetDirty(controller);
+                        EditorSceneManager.MarkSceneDirty(scene);
+                        Debug.Log($"[UIToolkitBootstrapSetup] Assigned app catalog: {AppCatalogPath}");
                     }
                 }
 

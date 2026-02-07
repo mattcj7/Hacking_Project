@@ -19,8 +19,10 @@ namespace HackingProject.UI.Desktop
         private const string TaskbarAppsClassName = "taskbar-apps";
         private const string TaskbarClassName = "taskbar";
         private const string WindowTemplatePath = "Assets/UI/Windows/Window.uxml";
+        private const string AppCatalogPath = "Assets/ScriptableObjects/Apps/AppCatalog_Default.asset";
 
         [SerializeField] private VisualTreeAsset windowTemplate;
+        [SerializeField] private AppCatalogSO appCatalog;
 
         private Label _clockLabel;
         private VisualElement _windowsLayer;
@@ -31,6 +33,7 @@ namespace HackingProject.UI.Desktop
         private ITimeServiceProvider _timeServiceProvider;
         private IDisposable _timeSubscription;
         private bool _loggedMissingTemplate;
+        private bool _loggedMissingAppCatalog;
         private bool _loggedMissingTimeService;
         private bool _hasStarted;
 
@@ -113,11 +116,22 @@ namespace HackingProject.UI.Desktop
 
             if (_appRegistry == null)
             {
-                _appRegistry = new AppRegistry(new[]
+                if (appCatalog == null)
                 {
-                    new AppDefinition(AppId.Terminal, "Terminal"),
-                    new AppDefinition(AppId.FileManager, "File Manager")
-                });
+#if UNITY_EDITOR
+                    appCatalog = AssetDatabase.LoadAssetAtPath<AppCatalogSO>(AppCatalogPath);
+                    if (appCatalog == null && !_loggedMissingAppCatalog)
+                    {
+                        Debug.LogError($"[DesktopShellController] Missing AppCatalog at '{AppCatalogPath}' on '{gameObject.name}' in scene '{gameObject.scene.path}'.");
+                        _loggedMissingAppCatalog = true;
+                    }
+#endif
+                }
+
+                if (appCatalog != null)
+                {
+                    _appRegistry = new AppRegistry(appCatalog.Apps);
+                }
             }
 
             if (_appLauncher == null && _windowManager != null)
@@ -152,15 +166,31 @@ namespace HackingProject.UI.Desktop
         {
             _taskbarApps.Clear();
             var apps = _appRegistry.InstalledApps;
+            var validCount = 0;
+            for (var i = 0; i < apps.Count; i++)
+            {
+                if (apps[i] != null)
+                {
+                    validCount++;
+                }
+            }
+
+            var added = 0;
             for (var i = 0; i < apps.Count; i++)
             {
                 var app = apps[i];
+                if (app == null)
+                {
+                    continue;
+                }
+
                 var appDefinition = app;
                 var button = new Button(() => _appLauncher.LaunchOrFocus(appDefinition))
                 {
-                    text = appDefinition.DisplayName
+                    text = string.IsNullOrWhiteSpace(appDefinition.DisplayName) ? appDefinition.name : appDefinition.DisplayName
                 };
-                var marginRight = i < apps.Count - 1 ? 8f : 0f;
+                added++;
+                var marginRight = added < validCount ? 8f : 0f;
                 button.style.marginRight = marginRight;
                 _taskbarApps.Add(button);
             }
