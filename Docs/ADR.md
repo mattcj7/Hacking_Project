@@ -37,3 +37,21 @@ Add entries like:
 - Decision: Use UI Toolkit assets for the desktop shell and provide an Editor menu tool to wire `UIDocument` + `PanelSettings`.
 - Consequences: Consistent UI setup with minimal manual scene edits.
 - Alternatives considered: Manual scene wiring without a setup tool; IMGUI-based shell.
+
+## ADR-0007: AppRegistry + Launcher for Taskbar Apps
+- Context: Need a minimal, instance-based way to list installed apps and launch/focus windows from the taskbar.
+- Decision: Add `AppRegistry` to hold installed `AppDefinition` data and an `AppLauncher` to create or focus single-instance windows via `WindowManager`. `DesktopShellController` owns both and populates the taskbar at runtime.
+- Consequences: Taskbar buttons are data-driven and re-use the existing window system without global singletons.
+- Alternatives considered: Hardcoded app buttons in UXML; a static/global registry.
+
+## ADR-0008: TimeService as Single Time Source
+- Context: The OS shell and future systems need a shared, consistent time source for clock updates and timers.
+- Decision: Add an instance-based `TimeService` that publishes a once-per-second tick event via `EventBus` and is updated by `GameBootstrapper`.
+- Consequences: UI and systems can subscribe to a single time source without ad-hoc timers.
+- Alternatives considered: Per-UI timers; a static global clock.
+
+## ADR-0009: JsonUtility Saves with Atomic + Backup + Integrity
+- Context: Need a minimal, robust save pipeline that works across Unity platforms and detects corruption.
+- Decision: Serialize a payload+envelope using `JsonUtility`, write via temp + replace, keep a `.bak` fallback, and store a SHA-256 hash of the payload for integrity checks.
+- Consequences: Saves are portable, atomic, and corruption-evident without introducing encryption or cloud dependencies.
+- Alternatives considered: Direct payload-only saves; no integrity check; non-atomic overwrites.
