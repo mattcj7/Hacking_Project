@@ -33,6 +33,11 @@ namespace HackingProject.UI.Windows
             return view;
         }
 
+        public WindowView CreateWindowAt(string title, Vector2 position)
+        {
+            return CreateWindow(title, position);
+        }
+
         public void AddWindow(WindowView view)
         {
             if (view == null)

@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
 using HackingProject.UI.Apps;
@@ -33,11 +34,15 @@ namespace HackingProject.UI.Desktop
         private AppLauncher _appLauncher;
         private ITimeServiceProvider _timeServiceProvider;
         private IVfsProvider _vfsProvider;
+        private ISaveGameDataProvider _saveDataProvider;
         private IDisposable _timeSubscription;
+        private IDisposable _saveSessionSubscription;
         private bool _loggedMissingTemplate;
         private bool _loggedMissingAppCatalog;
         private bool _loggedMissingTimeService;
+        private bool _loggedMissingSaveProvider;
         private bool _hasStarted;
+        private bool _sessionRestored;
 
         private void OnEnable()
         {
@@ -140,6 +145,7 @@ namespace HackingProject.UI.Desktop
             {
                 _appLauncher = new AppLauncher(_windowManager);
                 TryHookVfs();
+                TryHookSession();
             }
 
             if (_taskbarApps != null && _appRegistry != null && _appLauncher != null)
@@ -151,6 +157,7 @@ namespace HackingProject.UI.Desktop
             {
                 TryHookTimeService();
                 TryHookVfs();
+                TryHookSession();
             }
         }
 
@@ -159,12 +166,15 @@ namespace HackingProject.UI.Desktop
             _hasStarted = true;
             TryHookTimeService();
             TryHookVfs();
+            TryHookSession();
         }
 
         private void OnDisable()
         {
             _timeSubscription?.Dispose();
             _timeSubscription = null;
+            _saveSessionSubscription?.Dispose();
+            _saveSessionSubscription = null;
         }
 
         private void PopulateTaskbar()
@@ -248,6 +258,44 @@ namespace HackingProject.UI.Desktop
             _appLauncher.SetVirtualFileSystem(_vfsProvider.Vfs);
         }
 
+        private void TryHookSession()
+        {
+            if (_appLauncher == null)
+            {
+                return;
+            }
+
+            if (_saveDataProvider == null)
+            {
+                _saveDataProvider = FindSaveDataProvider();
+            }
+
+            if (_saveDataProvider == null || _saveDataProvider.SaveData == null)
+            {
+                if (_hasStarted && !_loggedMissingSaveProvider)
+                {
+                    Debug.LogWarning("[DesktopShellController] SaveGameData provider not found.");
+                    _loggedMissingSaveProvider = true;
+                }
+
+                return;
+            }
+
+            var session = _saveDataProvider.SaveData.OsSession ?? (_saveDataProvider.SaveData.OsSession = new OsSessionData());
+            _appLauncher.SetSessionData(session);
+
+            if (!_sessionRestored && _appRegistry != null)
+            {
+                _appLauncher.RestoreSession(_appRegistry, session);
+                _sessionRestored = true;
+            }
+
+            if (_timeServiceProvider != null && _saveSessionSubscription == null)
+            {
+                _saveSessionSubscription = _timeServiceProvider.EventBus.Subscribe<SaveSessionCaptureEvent>(OnSaveSessionCapture);
+            }
+        }
+
         private void OnTimeSecondTicked(TimeSecondTickedEvent evt)
         {
             UpdateClock(evt.CurrentTime);
@@ -284,6 +332,30 @@ namespace HackingProject.UI.Desktop
             }
 
             return null;
+        }
+
+        private static ISaveGameDataProvider FindSaveDataProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is ISaveGameDataProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
+        }
+
+        private void OnSaveSessionCapture(SaveSessionCaptureEvent evt)
+        {
+            if (evt.Session == null || _appLauncher == null)
+            {
+                return;
+            }
+
+            _appLauncher.CaptureSession(evt.Session);
         }
     }
 }

@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 
 namespace HackingProject.Game
 {
-    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider
+    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider
     {
         private EventBus _eventBus;
         private GameStateMachine _stateMachine;
@@ -21,6 +21,7 @@ namespace HackingProject.Game
         public EventBus EventBus => _eventBus;
         public TimeService TimeService => _timeService;
         public VirtualFileSystem Vfs => _vfs;
+        public SaveGameData SaveData => _saveData;
 
         private void Awake()
         {
@@ -39,6 +40,7 @@ namespace HackingProject.Game
             if (_saveService.TryLoad(out var loaded))
             {
                 _saveData = loaded;
+                EnsureSessionData();
                 _eventBus.Publish(new SaveLoadedEvent(_saveData, _saveService.LastLoadSource));
                 Debug.Log($"[SaveService] Loaded save ({_saveService.LastLoadSource}).");
             }
@@ -92,6 +94,8 @@ namespace HackingProject.Game
         {
             try
             {
+                EnsureSessionData();
+                _eventBus.Publish(new SaveSessionCaptureEvent(_saveData.OsSession));
                 _saveService.Save(_saveData);
                 _eventBus.Publish(new SaveCompletedEvent(_saveData));
                 Debug.Log("[SaveService] Save completed.");
@@ -113,6 +117,19 @@ namespace HackingProject.Game
             catch (Exception ex)
             {
                 Debug.LogError($"[SaveService] Clear failed: {ex.Message}");
+            }
+        }
+
+        private void EnsureSessionData()
+        {
+            if (_saveData == null)
+            {
+                return;
+            }
+
+            if (_saveData.OsSession == null)
+            {
+                _saveData.OsSession = new OsSessionData();
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
 using UnityEngine.UIElements;
 
@@ -16,9 +17,10 @@ namespace HackingProject.UI.Apps
         private readonly Label _pathLabel;
         private readonly Button _backButton;
         private readonly VisualElement _entriesRoot;
+        private readonly OsSessionData _sessionData;
         private VfsDirectory _currentDirectory;
 
-        public FileManagerController(VisualElement root, VirtualFileSystem vfs)
+        public FileManagerController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData)
         {
             if (root == null)
             {
@@ -26,6 +28,7 @@ namespace HackingProject.UI.Apps
             }
 
             _vfs = vfs ?? throw new ArgumentNullException(nameof(vfs));
+            _sessionData = sessionData;
             _pathLabel = root.Q<Label>(PathLabelName);
             _backButton = root.Q<Button>(BackButtonName);
             _entriesRoot = root.Q<VisualElement>(EntriesName);
@@ -49,6 +52,11 @@ namespace HackingProject.UI.Apps
             if (_pathLabel != null)
             {
                 _pathLabel.text = _currentDirectory.Path;
+            }
+
+            if (_sessionData != null)
+            {
+                _sessionData.FileManagerPath = _currentDirectory.Path;
             }
 
             if (_entriesRoot != null)

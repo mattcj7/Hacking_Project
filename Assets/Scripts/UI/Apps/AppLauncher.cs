@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
 using HackingProject.UI.Windows;
 using UnityEngine;
@@ -14,6 +15,7 @@ namespace HackingProject.UI.Apps
         private Vector2 _nextSpawnPosition = new Vector2(64f, 72f);
         private readonly Vector2 _spawnOffset = new Vector2(48f, 36f);
         private VirtualFileSystem _vfs;
+        private OsSessionData _sessionData;
 
         private const string FileManagerStartPath = "/home/user";
         private const string TerminalStartPath = "/home/user";
@@ -28,7 +30,17 @@ namespace HackingProject.UI.Apps
             _vfs = vfs;
         }
 
+        public void SetSessionData(OsSessionData sessionData)
+        {
+            _sessionData = sessionData;
+        }
+
         public WindowView LaunchOrFocus(AppDefinitionSO app)
+        {
+            return LaunchOrFocus(app, null);
+        }
+
+        public WindowView LaunchOrFocus(AppDefinitionSO app, Vector2? positionOverride)
         {
             if (app == null)
             {
@@ -40,6 +52,10 @@ namespace HackingProject.UI.Apps
                 if (IsWindowOpen(existing))
                 {
                     _windowManager.BringToFront(existing);
+                    if (positionOverride.HasValue)
+                    {
+                        existing.SetPosition(positionOverride.Value);
+                    }
                     return existing;
                 }
 
@@ -47,7 +63,7 @@ namespace HackingProject.UI.Apps
             }
 
             var displayName = string.IsNullOrWhiteSpace(app.DisplayName) ? app.name : app.DisplayName;
-            var position = app.DefaultWindowPosition == Vector2.zero ? _nextSpawnPosition : app.DefaultWindowPosition;
+            var position = positionOverride ?? (app.DefaultWindowPosition == Vector2.zero ? _nextSpawnPosition : app.DefaultWindowPosition);
             var view = _windowManager.CreateWindow(displayName, position);
             if (app.DefaultWindowSize != Vector2.zero)
             {
@@ -63,6 +79,74 @@ namespace HackingProject.UI.Apps
             _openWindows[app.Id] = view;
             _nextSpawnPosition += _spawnOffset;
             return view;
+        }
+
+        public bool TryGetOpenWindow(AppId id, out WindowView view)
+        {
+            return _openWindows.TryGetValue(id, out view) && IsWindowOpen(view);
+        }
+
+        public void RestoreSession(AppRegistry registry, OsSessionData sessionData)
+        {
+            if (registry == null || sessionData == null)
+            {
+                return;
+            }
+
+            _sessionData = sessionData;
+            var entries = sessionData.OpenWindows;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.AppId))
+                {
+                    continue;
+                }
+
+                if (!Enum.TryParse(entry.AppId, out AppId appId))
+                {
+                    continue;
+                }
+
+                if (!registry.TryGetById(appId, out var app))
+                {
+                    continue;
+                }
+
+                LaunchOrFocus(app, new Vector2(entry.X, entry.Y));
+            }
+        }
+
+        public void CaptureSession(OsSessionData sessionData)
+        {
+            if (sessionData == null)
+            {
+                return;
+            }
+
+            if (sessionData.OpenWindows == null)
+            {
+                sessionData.OpenWindows = new System.Collections.Generic.List<OpenWindowData>();
+            }
+
+            sessionData.OpenWindows.Clear();
+            var windows = _windowManager.Windows;
+            for (var i = 0; i < windows.Count; i++)
+            {
+                var view = windows[i];
+                if (!TryGetAppId(view, out var appId))
+                {
+                    continue;
+                }
+
+                sessionData.OpenWindows.Add(new OpenWindowData
+                {
+                    AppId = appId.ToString(),
+                    X = view.Position.x,
+                    Y = view.Position.y,
+                    ZOrder = i
+                });
+            }
         }
 
         private bool IsWindowOpen(WindowView view)
@@ -102,8 +186,11 @@ namespace HackingProject.UI.Apps
                 var root = app.ViewTemplate.CloneTree();
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
-                var controller = new FileManagerController(root, _vfs);
-                controller.Initialize(FileManagerStartPath);
+                var controller = new FileManagerController(root, _vfs, _sessionData);
+                var startPath = _sessionData != null && !string.IsNullOrWhiteSpace(_sessionData.FileManagerPath)
+                    ? _sessionData.FileManagerPath
+                    : FileManagerStartPath;
+                controller.Initialize(startPath);
                 return true;
             }
 
@@ -112,11 +199,26 @@ namespace HackingProject.UI.Apps
                 var root = app.ViewTemplate.CloneTree();
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
-                var controller = new TerminalController(root, _vfs);
+                var controller = new TerminalController(root, _vfs, _sessionData);
                 controller.Initialize();
                 return true;
             }
 
+            return false;
+        }
+
+        private bool TryGetAppId(WindowView view, out AppId appId)
+        {
+            foreach (var pair in _openWindows)
+            {
+                if (pair.Value == view)
+                {
+                    appId = pair.Key;
+                    return true;
+                }
+            }
+
+            appId = default;
             return false;
         }
     }

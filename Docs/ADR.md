@@ -73,3 +73,9 @@ Add entries like:
 - Decision: Implement a pure C# command parser/executor that operates on the in-memory VFS (help/pwd/ls/cd/cat/clear).
 - Consequences: Terminal behavior is deterministic, safe, and testable while remaining entirely fictional.
 - Alternatives considered: Executing OS commands; scripting with external interpreters.
+
+## ADR-0014: Persist OS Session State
+- Context: The OS shell should restore open apps, window positions, and last-used paths between sessions.
+- Decision: Store minimal session data in `SaveGameData` (open windows + paths) and let UI capture/restore via `SaveSessionCaptureEvent` without global access.
+- Consequences: Session restoration is deterministic and data-driven while keeping the save format minimal.
+- Alternatives considered: No session persistence; full app state serialization.

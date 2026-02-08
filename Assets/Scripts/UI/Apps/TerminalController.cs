@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Terminal;
 using HackingProject.Infrastructure.Vfs;
 using UnityEngine;
@@ -20,9 +21,10 @@ namespace HackingProject.UI.Apps
         private readonly VisualElement _textInput;
         private readonly TerminalCommandProcessor _processor;
         private readonly TerminalSession _session;
+        private readonly OsSessionData _sessionData;
         private bool _inputHandlerRegistered;
 
-        public TerminalController(VisualElement root, VirtualFileSystem vfs)
+        public TerminalController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData)
         {
             if (root == null)
             {
@@ -37,13 +39,21 @@ namespace HackingProject.UI.Apps
             _output = root.Q<ScrollView>(OutputName);
             _input = root.Q<TextField>(InputName);
             _textInput = _input?.Q<VisualElement>(TextInputName);
-            _session = new TerminalSession(vfs, DefaultStartPath);
-            _processor = new TerminalCommandProcessor(vfs, _session);
+            _sessionData = sessionData;
+            var startPath = _sessionData != null && !string.IsNullOrWhiteSpace(_sessionData.TerminalCwdPath)
+                ? _sessionData.TerminalCwdPath
+                : DefaultStartPath;
+            _session = new TerminalSession(vfs, startPath);
+            _processor = new TerminalCommandProcessor(vfs, _session, _sessionData);
         }
 
         public void Initialize()
         {
             AppendLine("Type 'help' for commands.");
+            if (_sessionData != null)
+            {
+                _sessionData.TerminalCwdPath = _session.CurrentPath;
+            }
 
             if (_input != null)
             {

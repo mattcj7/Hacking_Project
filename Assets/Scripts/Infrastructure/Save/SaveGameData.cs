@@ -8,6 +8,7 @@ namespace HackingProject.Infrastructure.Save
         public int Version = 1;
         public string LastSavedUtcIso;
         public int Credits;
+        public OsSessionData OsSession;
 
         public static SaveGameData CreateDefault()
         {
@@ -15,7 +16,8 @@ namespace HackingProject.Infrastructure.Save
             {
                 Version = 1,
                 Credits = 0,
-                LastSavedUtcIso = string.Empty
+                LastSavedUtcIso = string.Empty,
+                OsSession = new OsSessionData()
             };
         }
     }

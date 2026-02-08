@@ -22,7 +22,7 @@ namespace HackingProject.Tests.EditMode
         {
             var vfs = DefaultVfsFactory.Create();
             var session = new TerminalSession(vfs, "/home/user");
-            var processor = new TerminalCommandProcessor(vfs, session);
+            var processor = new TerminalCommandProcessor(vfs, session, null);
 
             processor.Execute("cd docs");
             Assert.AreEqual("/home/user/docs", session.CurrentPath);

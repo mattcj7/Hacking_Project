@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
 
 namespace HackingProject.Infrastructure.Terminal
@@ -7,11 +8,13 @@ namespace HackingProject.Infrastructure.Terminal
     {
         private readonly VirtualFileSystem _vfs;
         private readonly TerminalSession _session;
+        private readonly OsSessionData _sessionData;
 
-        public TerminalCommandProcessor(VirtualFileSystem vfs, TerminalSession session)
+        public TerminalCommandProcessor(VirtualFileSystem vfs, TerminalSession session, OsSessionData sessionData)
         {
             _vfs = vfs ?? throw new ArgumentNullException(nameof(vfs));
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _sessionData = sessionData;
         }
 
         public TerminalCommandResult Execute(string input)
@@ -74,6 +77,10 @@ namespace HackingProject.Infrastructure.Terminal
             if (node is VfsDirectory directory)
             {
                 _session.SetCurrentDirectory(directory);
+                if (_sessionData != null)
+                {
+                    _sessionData.TerminalCwdPath = _session.CurrentPath;
+                }
                 return TerminalCommandResult.Empty;
             }
 

@@ -25,5 +25,21 @@ namespace HackingProject.UI.Apps
         }
 
         public IReadOnlyList<AppDefinitionSO> InstalledApps => _installedApps;
+
+        public bool TryGetById(AppId id, out AppDefinitionSO app)
+        {
+            for (var i = 0; i < _installedApps.Count; i++)
+            {
+                var candidate = _installedApps[i];
+                if (candidate != null && candidate.Id == id)
+                {
+                    app = candidate;
+                    return true;
+                }
+            }
+
+            app = null;
+            return false;
+        }
     }
 }
