@@ -1,35 +1,63 @@
-﻿## Ticket 0013 - File Manager UI matches Terminal theme (shared theme USS)
+﻿## Ticket 0014 - Persist OS session (open apps + window positions + last paths) via SaveService
 
 **Goal:**  
-Make the File Manager window match the same dark/legible color scheme as the Terminal window, using a shared theme stylesheet so both apps stay consistent.
+Persist and restore the player’s “OS session”:
+- Which apps are open
+- Window positions (x,y)
+- Last known working directory for Terminal
+- Last visited path for File Manager
 
 **Non-goals:**  
-- No new File Manager features (navigation stays as-is)
-- No changes to VFS logic
-- No layout redesign beyond color/typography/padding adjustments
+- No encryption/anti-tamper beyond existing integrity
+- No multi-slot UI
+- No deep app state (only minimal session state)
 
 **Acceptance criteria:**
-- [ ] Add a shared theme USS file (single source of truth):
-  - `Assets/UI/Theme/HackingOSTheme.uss`
-- [ ] Theme defines common look:
-  - [ ] Dark panel background
-  - [ ] High-contrast text color
-  - [ ] Subtle borders/dividers consistent with Terminal
-  - [ ] Reasonable font sizing and padding for readability
-- [ ] File Manager uses the shared theme:
-  - [ ] `FileManagerView.uxml` includes `HackingOSTheme.uss` (preferred) OR controller adds it at runtime
-  - [ ] Remove/adjust conflicting styles so File Manager matches Terminal
-- [ ] Any input/list elements in File Manager are readable (no white background with light text)
-- [ ] No USS warnings (avoid unsupported props like `gap` and unsupported pseudo-classes like `:last-child`)
-- [ ] Unity compiles with 0 errors/warnings and tests remain green
+- [ ] Extend `SaveGameData` to include `OsSessionData`:
+  - [ ] `List<OpenWindowData>` where each entry includes:
+    - [ ] `string AppId` (or enum/string id used by AppDefinitionSO)
+    - [ ] `float X`, `float Y` (window position in pixels)
+    - [ ] Optional `float Width`, `float Height` (if available; else omit for now)
+    - [ ] `int ZOrder` (optional; restore order if easy)
+  - [ ] `string TerminalCwdPath` (start default `/home/user`)
+  - [ ] `string FileManagerPath` (start default `/home/user`)
+- [ ] WindowManager exposes:
+  - [ ] A way to query current open windows + positions
+  - [ ] A way to spawn windows at a position (restore)
+- [ ] AppLauncher integrates session restore:
+  - [ ] On load, restores open apps/windows from save session
+  - [ ] Single-instance rule still enforced (don’t duplicate windows)
+- [ ] Terminal + FileManager integrate session:
+  - [ ] When they change directory/path, update the session state in memory
+  - [ ] On open, initialize from session state if present
+- [ ] Saving:
+  - [ ] F5 save trigger still works and includes session state
+  - [ ] On application quit (Editor play mode stop), attempt an autosave (optional)
+- [ ] Tests:
+  - [ ] EditMode test: building session data from a mock set of windows produces expected SaveGameData
+  - [ ] EditMode test: restoring session calls spawn/focus with correct AppIds and positions (can be logic-only with mocks)
+- [ ] Unity compiles with 0 errors and tests pass
+- [ ] Play Mode:
+  - [ ] Open Terminal + File Manager, move windows, navigate paths, press F5
+  - [ ] Stop Play, start Play: windows re-open and positions + paths restore
 
-**Files allowed to edit:**
-- `Assets/UI/Theme/**`
-- `Assets/UI/Apps/FileManager/**`
-- `Assets/Scripts/UI/Apps/FileManager/**` (only if needed to attach theme at runtime)
+**Files allowed to edit:**  
+- `Assets/Scripts/Infrastructure/**`
+- `Assets/Scripts/Game/**`
+- `Assets/Scripts/UI/**`
+- `Assets/Tests/EditMode/**`
+- `Docs/ADR.md`
+
+**Implementation notes:**
+- Keep session state as simple DTOs (serializable by JsonUtility)
+- Avoid globals: store current `SaveGameData` in bootstrap/context and let systems update it
+- If Z-order restore is hard, skip for now (positions + open apps are the key)
 
 **Test plan:**
-1. Play Bootstrap
-2. Open Terminal and note its scheme
-3. Open File Manager and confirm it matches Terminal scheme (background + text + borders)
-4. Confirm Console has 0 errors/warnings
+1. Run EditMode tests (all green)
+2. Play Bootstrap
+3. Open Terminal + File Manager, move them, cd/navigate
+4. Press F5 to save
+5. Stop Play, Play again
+6. Confirm windows + positions + paths restore
+7. Confirm Console has 0 errors
