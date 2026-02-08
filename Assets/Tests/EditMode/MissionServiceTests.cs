@@ -30,17 +30,19 @@ namespace HackingProject.Tests.EditMode
             var eventBus = new EventBus();
             var service = new MissionService(eventBus);
             var mission = CreateMission();
-            var completed = false;
+            var completedCount = 0;
 
-            eventBus.Subscribe<MissionCompletedEvent>(_ => completed = true);
+            eventBus.Subscribe<MissionCompletedEvent>(_ => completedCount++);
             service.SetActiveMission(mission);
 
             eventBus.Publish(new TerminalCommandExecutedEvent("cd", new[] { "docs" }, "/home/user", "/home/user/docs"));
             eventBus.Publish(new TerminalCommandExecutedEvent("cat", new[] { "readme.txt" }, "/home/user/docs", "/home/user/docs/readme.txt"));
+            eventBus.Publish(new TerminalCommandExecutedEvent("cat", new[] { "readme.txt" }, "/home/user/docs", "/home/user/docs/readme.txt"));
 
             Assert.IsTrue(service.IsObjectiveCompleted(0));
             Assert.IsTrue(service.IsObjectiveCompleted(1));
-            Assert.IsTrue(completed);
+            Assert.IsTrue(service.IsActiveMissionCompleted);
+            Assert.AreEqual(1, completedCount);
         }
 
         private static MissionDefinitionSO CreateMission()

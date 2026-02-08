@@ -9,6 +9,7 @@ namespace HackingProject.UI.Apps
     {
         private const string TitleName = "mission-title";
         private const string DescriptionName = "mission-description";
+        private const string CompleteName = "mission-complete";
         private const string ObjectivesName = "objectives-root";
         private const string ObjectiveClassName = "mission-objective";
         private const string ObjectiveCompleteClassName = "mission-objective-complete";
@@ -18,6 +19,7 @@ namespace HackingProject.UI.Apps
         private readonly EventBus _eventBus;
         private readonly Label _titleLabel;
         private readonly Label _descriptionLabel;
+        private readonly Label _completeLabel;
         private readonly VisualElement _objectivesRoot;
         private IDisposable _startedSubscription;
         private IDisposable _objectiveSubscription;
@@ -31,6 +33,7 @@ namespace HackingProject.UI.Apps
             _eventBus = eventBus;
             _titleLabel = root.Q<Label>(TitleName);
             _descriptionLabel = root.Q<Label>(DescriptionName);
+            _completeLabel = root.Q<Label>(CompleteName);
             _objectivesRoot = root.Q<VisualElement>(ObjectivesName);
         }
 
@@ -68,6 +71,7 @@ namespace HackingProject.UI.Apps
                     _descriptionLabel.text = string.Empty;
                 }
 
+                SetCompletedVisible(false);
                 _objectivesRoot?.Clear();
                 return;
             }
@@ -83,6 +87,7 @@ namespace HackingProject.UI.Apps
                 _descriptionLabel.text = mission.Description ?? string.Empty;
             }
 
+            SetCompletedVisible(_missionService.IsActiveMissionCompleted);
             if (_objectivesRoot == null)
             {
                 return;
@@ -140,6 +145,16 @@ namespace HackingProject.UI.Apps
             }
 
             return "Objective";
+        }
+
+        private void SetCompletedVisible(bool isVisible)
+        {
+            if (_completeLabel == null)
+            {
+                return;
+            }
+
+            _completeLabel.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 }

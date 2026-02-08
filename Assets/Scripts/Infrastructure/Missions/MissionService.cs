@@ -12,6 +12,7 @@ namespace HackingProject.Infrastructure.Missions
         private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
         private MissionDefinitionSO _activeMission;
         private bool[] _objectiveStates = Array.Empty<bool>();
+        private bool _missionCompleted;
 
         public MissionService(EventBus eventBus)
         {
@@ -21,6 +22,7 @@ namespace HackingProject.Infrastructure.Missions
         }
 
         public MissionDefinitionSO ActiveMission => _activeMission;
+        public bool IsActiveMissionCompleted => _missionCompleted;
 
         public bool IsObjectiveCompleted(int index)
         {
@@ -32,14 +34,12 @@ namespace HackingProject.Infrastructure.Missions
             _activeMission = mission;
             var count = mission?.Objectives?.Count ?? 0;
             _objectiveStates = count > 0 ? new bool[count] : Array.Empty<bool>();
+            _missionCompleted = false;
 
             if (mission != null)
             {
                 _eventBus.Publish(new MissionStartedEvent(mission));
-                if (count == 0)
-                {
-                    _eventBus.Publish(new MissionCompletedEvent(mission));
-                }
+                TryCompleteMission();
             }
         }
 
@@ -143,10 +143,23 @@ namespace HackingProject.Infrastructure.Missions
             _objectiveStates[index] = true;
             _eventBus.Publish(new MissionObjectiveCompletedEvent(_activeMission, index));
 
-            if (AreAllObjectivesComplete())
+            TryCompleteMission();
+        }
+
+        private void TryCompleteMission()
+        {
+            if (_missionCompleted || _activeMission == null)
             {
-                _eventBus.Publish(new MissionCompletedEvent(_activeMission));
+                return;
             }
+
+            if (!AreAllObjectivesComplete())
+            {
+                return;
+            }
+
+            _missionCompleted = true;
+            _eventBus.Publish(new MissionCompletedEvent(_activeMission));
         }
 
         private bool AreAllObjectivesComplete()
