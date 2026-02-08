@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
 using UnityEngine.UIElements;
@@ -14,13 +15,14 @@ namespace HackingProject.UI.Apps
         private const string DirectoryClassName = "filemanager-entry-dir";
 
         private readonly VirtualFileSystem _vfs;
+        private readonly EventBus _eventBus;
         private readonly Label _pathLabel;
         private readonly Button _backButton;
         private readonly VisualElement _entriesRoot;
         private readonly OsSessionData _sessionData;
         private VfsDirectory _currentDirectory;
 
-        public FileManagerController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData)
+        public FileManagerController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData, EventBus eventBus)
         {
             if (root == null)
             {
@@ -29,6 +31,7 @@ namespace HackingProject.UI.Apps
 
             _vfs = vfs ?? throw new ArgumentNullException(nameof(vfs));
             _sessionData = sessionData;
+            _eventBus = eventBus;
             _pathLabel = root.Q<Label>(PathLabelName);
             _backButton = root.Q<Button>(BackButtonName);
             _entriesRoot = root.Q<VisualElement>(EntriesName);
@@ -94,6 +97,12 @@ namespace HackingProject.UI.Apps
             {
                 _currentDirectory = directory;
                 RefreshView();
+                return;
+            }
+
+            if (node is VfsFile file)
+            {
+                _eventBus?.Publish(new FileManagerOpenedFileEvent(file.Path));
             }
         }
 

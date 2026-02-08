@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
 
@@ -9,12 +10,14 @@ namespace HackingProject.Infrastructure.Terminal
         private readonly VirtualFileSystem _vfs;
         private readonly TerminalSession _session;
         private readonly OsSessionData _sessionData;
+        private readonly EventBus _eventBus;
 
-        public TerminalCommandProcessor(VirtualFileSystem vfs, TerminalSession session, OsSessionData sessionData)
+        public TerminalCommandProcessor(VirtualFileSystem vfs, TerminalSession session, OsSessionData sessionData, EventBus eventBus)
         {
             _vfs = vfs ?? throw new ArgumentNullException(nameof(vfs));
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _sessionData = sessionData;
+            _eventBus = eventBus;
         }
 
         public TerminalCommandResult Execute(string input)
@@ -24,27 +27,40 @@ namespace HackingProject.Infrastructure.Terminal
                 return TerminalCommandResult.Empty;
             }
 
+            var cwd = _session.CurrentPath;
+            var resolvedPath = ResolvePathForArgs(command.Args, cwd);
             var commandName = command.Name.ToLowerInvariant();
+            TerminalCommandResult result;
             switch (commandName)
             {
                 case "help":
-                    return new TerminalCommandResult(new[]
+                    result = new TerminalCommandResult(new[]
                     {
                         "Commands: help, pwd, ls, cd, cat, clear"
                     }, false);
+                    break;
                 case "pwd":
-                    return new TerminalCommandResult(new[] { _session.CurrentPath }, false);
+                    result = new TerminalCommandResult(new[] { _session.CurrentPath }, false);
+                    break;
                 case "ls":
-                    return ExecuteList();
+                    result = ExecuteList();
+                    break;
                 case "cd":
-                    return ExecuteChangeDirectory(command.Args);
+                    result = ExecuteChangeDirectory(command.Args);
+                    break;
                 case "cat":
-                    return ExecuteCat(command.Args);
+                    result = ExecuteCat(command.Args);
+                    break;
                 case "clear":
-                    return new TerminalCommandResult(Array.Empty<string>(), true);
+                    result = new TerminalCommandResult(Array.Empty<string>(), true);
+                    break;
                 default:
-                    return new TerminalCommandResult(new[] { $"Unknown command: {command.Name}" }, false);
+                    result = new TerminalCommandResult(new[] { $"Unknown command: {command.Name}" }, false);
+                    break;
             }
+
+            _eventBus?.Publish(new TerminalCommandExecutedEvent(command.Name, command.Args, cwd, resolvedPath));
+            return result;
         }
 
         private TerminalCommandResult ExecuteList()
@@ -106,6 +122,11 @@ namespace HackingProject.Infrastructure.Terminal
 
         private VfsNode ResolvePath(string path)
         {
+            return ResolvePath(_session.CurrentPath, path);
+        }
+
+        private VfsNode ResolvePath(string basePath, string path)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 return _session.CurrentDirectory;
@@ -113,11 +134,22 @@ namespace HackingProject.Infrastructure.Terminal
 
             var combined = path.StartsWith("/", StringComparison.Ordinal)
                 ? path
-                : _session.CurrentPath == "/"
+                : basePath == "/"
                     ? $"/{path}"
-                    : $"{_session.CurrentPath}/{path}";
+                    : $"{basePath}/{path}";
 
             return _vfs.Resolve(combined);
+        }
+
+        private string ResolvePathForArgs(string[] args, string cwd)
+        {
+            if (args == null || args.Length == 0)
+            {
+                return null;
+            }
+
+            var node = ResolvePath(cwd, args[0]);
+            return node?.Path;
         }
     }
 }

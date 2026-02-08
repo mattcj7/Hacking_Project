@@ -1,19 +1,28 @@
 using System;
 using HackingProject.Infrastructure.Events;
+using HackingProject.Infrastructure.Missions;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
 using UnityEngine;
 using UnityEngine.InputSystem;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace HackingProject.Game
 {
-    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider
+    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider, IMissionServiceProvider
     {
+        private const string MissionCatalogPath = "Assets/ScriptableObjects/Missions/MissionCatalog_Default.asset";
+
+        [SerializeField] private MissionCatalogSO missionCatalog;
+
         private EventBus _eventBus;
         private GameStateMachine _stateMachine;
         private SaveService _saveService;
         private SaveGameData _saveData;
+        private MissionService _missionService;
         private TimeService _timeService;
         private VirtualFileSystem _vfs;
         private IDisposable _stateChangedSubscription;
@@ -22,6 +31,7 @@ namespace HackingProject.Game
         public TimeService TimeService => _timeService;
         public VirtualFileSystem Vfs => _vfs;
         public SaveGameData SaveData => _saveData;
+        public MissionService MissionService => _missionService;
 
         private void Awake()
         {
@@ -29,7 +39,24 @@ namespace HackingProject.Game
             _stateMachine = new GameStateMachine(_eventBus);
             _timeService = new TimeService(_eventBus);
             _saveService = new SaveService(Application.persistentDataPath);
+            _missionService = new MissionService(_eventBus);
             _vfs = DefaultVfsFactory.Create();
+
+#if UNITY_EDITOR
+            if (missionCatalog == null)
+            {
+                missionCatalog = AssetDatabase.LoadAssetAtPath<MissionCatalogSO>(MissionCatalogPath);
+                if (missionCatalog == null)
+                {
+                    Debug.LogWarning($"[MissionService] Missing MissionCatalog at '{MissionCatalogPath}'.");
+                }
+            }
+#endif
+
+            if (missionCatalog != null && missionCatalog.Missions != null && missionCatalog.Missions.Count > 0)
+            {
+                _missionService.SetActiveMission(missionCatalog.Missions[0]);
+            }
 
             var gameplayState = new GameplayState();
             var mainMenuState = new MainMenuState(_stateMachine, gameplayState);
@@ -64,6 +91,7 @@ namespace HackingProject.Game
         private void OnDestroy()
         {
             _stateChangedSubscription?.Dispose();
+            _missionService?.Dispose();
         }
 
         private static void OnStateChanged(StateChangedEvent evt)

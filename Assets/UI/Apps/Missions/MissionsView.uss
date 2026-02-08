@@ -1,0 +1,40 @@
+.missions-root {
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 12px;
+  background-color: #0b0f14;
+  color: #e3f2ff;
+}
+
+.missions-title {
+  font-size: 16px;
+  -unity-font-style: bold;
+  margin-bottom: 4px;
+}
+
+.missions-description {
+  font-size: 12px;
+  color: #c8d8ea;
+  margin-bottom: 8px;
+}
+
+.missions-section {
+  margin-bottom: 4px;
+  -unity-font-style: bold;
+}
+
+.missions-objectives {
+  flex-direction: column;
+}
+
+.mission-objective {
+  margin-bottom: 4px;
+}
+
+.mission-objective-complete {
+  color: #8aa0b8;
+}
+
+.missions-root .unity-text-element {
+  color: #e3f2ff;
+}

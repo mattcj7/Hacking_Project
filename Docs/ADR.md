@@ -79,3 +79,9 @@ Add entries like:
 - Decision: Store minimal session data in `SaveGameData` (open windows + paths) and let UI capture/restore via `SaveSessionCaptureEvent` without global access.
 - Consequences: Session restoration is deterministic and data-driven while keeping the save format minimal.
 - Alternatives considered: No session persistence; full app state serialization.
+
+## ADR-0015: Event-Driven Mission System v1
+- Context: Need a minimal mission system that reacts to simulated Terminal/VFS interactions and is visible in the UI.
+- Decision: Add ScriptableObject-driven missions (`MissionDefinitionSO` + `MissionCatalogSO`) and a `MissionService` that subscribes to `TerminalCommandExecutedEvent`/`FileManagerOpenedFileEvent` and publishes mission lifecycle events. Provide a Missions app window to display the active mission and objective state.
+- Consequences: Missions are data-driven and evaluated without polling, keeping systems decoupled and testable.
+- Alternatives considered: Hardcoded mission checks in UI; polling the VFS/Terminal state each frame.

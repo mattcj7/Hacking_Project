@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Terminal;
 using HackingProject.Infrastructure.Vfs;
@@ -24,7 +25,7 @@ namespace HackingProject.UI.Apps
         private readonly OsSessionData _sessionData;
         private bool _inputHandlerRegistered;
 
-        public TerminalController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData)
+        public TerminalController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData, EventBus eventBus)
         {
             if (root == null)
             {
@@ -44,7 +45,7 @@ namespace HackingProject.UI.Apps
                 ? _sessionData.TerminalCwdPath
                 : DefaultStartPath;
             _session = new TerminalSession(vfs, startPath);
-            _processor = new TerminalCommandProcessor(vfs, _session, _sessionData);
+            _processor = new TerminalCommandProcessor(vfs, _session, _sessionData, eventBus);
         }
 
         public void Initialize()

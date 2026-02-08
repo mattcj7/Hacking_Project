@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="MissionsView.uss" />
+  <ui:VisualElement class="missions-root">
+    <ui:Label name="mission-title" text="Mission" class="missions-title" />
+    <ui:Label name="mission-description" text="" class="missions-description" />
+    <ui:Label text="Objectives" class="missions-section" />
+    <ui:VisualElement name="objectives-root" class="missions-objectives" />
+  </ui:VisualElement>
+</ui:UXML>

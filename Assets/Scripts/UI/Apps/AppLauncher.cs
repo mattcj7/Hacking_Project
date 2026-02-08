@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using HackingProject.Infrastructure.Events;
+using HackingProject.Infrastructure.Missions;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
 using HackingProject.UI.Windows;
@@ -14,6 +16,8 @@ namespace HackingProject.UI.Apps
         private readonly WindowManager _windowManager;
         private Vector2 _nextSpawnPosition = new Vector2(64f, 72f);
         private readonly Vector2 _spawnOffset = new Vector2(48f, 36f);
+        private EventBus _eventBus;
+        private MissionService _missionService;
         private VirtualFileSystem _vfs;
         private OsSessionData _sessionData;
 
@@ -28,6 +32,16 @@ namespace HackingProject.UI.Apps
         public void SetVirtualFileSystem(VirtualFileSystem vfs)
         {
             _vfs = vfs;
+        }
+
+        public void SetEventBus(EventBus eventBus)
+        {
+            _eventBus = eventBus;
+        }
+
+        public void SetMissionService(MissionService missionService)
+        {
+            _missionService = missionService;
         }
 
         public void SetSessionData(OsSessionData sessionData)
@@ -176,17 +190,22 @@ namespace HackingProject.UI.Apps
 
         private bool TryBuildAppContent(AppDefinitionSO app, WindowView view, string displayName)
         {
-            if (_vfs == null || app.ViewTemplate == null)
+            if (app.ViewTemplate == null)
             {
                 return false;
             }
 
             if (app.Id == AppId.FileManager)
             {
+                if (_vfs == null)
+                {
+                    return false;
+                }
+
                 var root = app.ViewTemplate.CloneTree();
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
-                var controller = new FileManagerController(root, _vfs, _sessionData);
+                var controller = new FileManagerController(root, _vfs, _sessionData, _eventBus);
                 var startPath = _sessionData != null && !string.IsNullOrWhiteSpace(_sessionData.FileManagerPath)
                     ? _sessionData.FileManagerPath
                     : FileManagerStartPath;
@@ -196,10 +215,30 @@ namespace HackingProject.UI.Apps
 
             if (app.Id == AppId.Terminal)
             {
+                if (_vfs == null)
+                {
+                    return false;
+                }
+
                 var root = app.ViewTemplate.CloneTree();
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
-                var controller = new TerminalController(root, _vfs, _sessionData);
+                var controller = new TerminalController(root, _vfs, _sessionData, _eventBus);
+                controller.Initialize();
+                return true;
+            }
+
+            if (app.Id == AppId.Missions)
+            {
+                if (_missionService == null)
+                {
+                    return false;
+                }
+
+                var root = app.ViewTemplate.CloneTree();
+                view.ContentRoot.Clear();
+                view.ContentRoot.Add(root);
+                var controller = new MissionsController(root, _missionService, _eventBus);
                 controller.Initialize();
                 return true;
             }

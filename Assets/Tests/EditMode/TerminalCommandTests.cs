@@ -1,3 +1,4 @@
+using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Terminal;
 using HackingProject.Infrastructure.Vfs;
 using NUnit.Framework;
@@ -22,7 +23,7 @@ namespace HackingProject.Tests.EditMode
         {
             var vfs = DefaultVfsFactory.Create();
             var session = new TerminalSession(vfs, "/home/user");
-            var processor = new TerminalCommandProcessor(vfs, session, null);
+            var processor = new TerminalCommandProcessor(vfs, session, null, new EventBus());
 
             processor.Execute("cd docs");
             Assert.AreEqual("/home/user/docs", session.CurrentPath);

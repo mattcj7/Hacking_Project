@@ -1,4 +1,5 @@
 using System;
+using HackingProject.Infrastructure.Missions;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
@@ -33,6 +34,7 @@ namespace HackingProject.UI.Desktop
         private AppRegistry _appRegistry;
         private AppLauncher _appLauncher;
         private ITimeServiceProvider _timeServiceProvider;
+        private IMissionServiceProvider _missionServiceProvider;
         private IVfsProvider _vfsProvider;
         private ISaveGameDataProvider _saveDataProvider;
         private IDisposable _timeSubscription;
@@ -40,6 +42,7 @@ namespace HackingProject.UI.Desktop
         private bool _loggedMissingTemplate;
         private bool _loggedMissingAppCatalog;
         private bool _loggedMissingTimeService;
+        private bool _loggedMissingMissionService;
         private bool _loggedMissingSaveProvider;
         private bool _hasStarted;
         private bool _sessionRestored;
@@ -153,18 +156,17 @@ namespace HackingProject.UI.Desktop
                 PopulateTaskbar();
             }
 
-            if (_hasStarted)
-            {
-                TryHookTimeService();
-                TryHookVfs();
-                TryHookSession();
-            }
+            TryHookTimeService();
+            TryHookMissionService();
+            TryHookVfs();
+            TryHookSession();
         }
 
         private void Start()
         {
             _hasStarted = true;
             TryHookTimeService();
+            TryHookMissionService();
             TryHookVfs();
             TryHookSession();
         }
@@ -236,6 +238,37 @@ namespace HackingProject.UI.Desktop
 
             _timeSubscription = _timeServiceProvider.EventBus.Subscribe<TimeSecondTickedEvent>(OnTimeSecondTicked);
             UpdateClock(_timeServiceProvider.TimeService.CurrentTime);
+
+            if (_appLauncher != null)
+            {
+                _appLauncher.SetEventBus(_timeServiceProvider.EventBus);
+            }
+        }
+
+        private void TryHookMissionService()
+        {
+            if (_appLauncher == null)
+            {
+                return;
+            }
+
+            if (_missionServiceProvider == null)
+            {
+                _missionServiceProvider = FindMissionServiceProvider();
+            }
+
+            if (_missionServiceProvider == null || _missionServiceProvider.MissionService == null)
+            {
+                if (_hasStarted && !_loggedMissingMissionService)
+                {
+                    Debug.LogWarning("[DesktopShellController] MissionService provider not found.");
+                    _loggedMissingMissionService = true;
+                }
+
+                return;
+            }
+
+            _appLauncher.SetMissionService(_missionServiceProvider.MissionService);
         }
 
         private void TryHookVfs()
@@ -340,6 +373,20 @@ namespace HackingProject.UI.Desktop
             for (var i = 0; i < behaviours.Length; i++)
             {
                 if (behaviours[i] is ISaveGameDataProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
+        }
+
+        private static IMissionServiceProvider FindMissionServiceProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IMissionServiceProvider provider)
                 {
                     return provider;
                 }
