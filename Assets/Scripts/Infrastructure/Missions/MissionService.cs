@@ -175,7 +175,6 @@ namespace HackingProject.Infrastructure.Missions
             TrackCompletion(_activeMission);
             _eventBus.Publish(new MissionCompletedEvent(_activeMission));
             TryGrantReward(_activeMission);
-            TryStartNextMission();
         }
 
         private bool AreAllObjectivesComplete()
@@ -233,18 +232,36 @@ namespace HackingProject.Infrastructure.Missions
             _eventBus.Publish(new MissionRewardGrantedEvent(missionId, reward));
         }
 
-        private void TryStartNextMission()
+        public bool TryGetNextMission(out MissionDefinitionSO nextMission)
+        {
+            nextMission = GetNextMission();
+            return nextMission != null;
+        }
+
+        public bool TryStartNextMission()
+        {
+            var nextMission = GetNextMission();
+            if (nextMission == null)
+            {
+                return false;
+            }
+
+            SetActiveMission(nextMission);
+            return true;
+        }
+
+        private MissionDefinitionSO GetNextMission()
         {
             if (_catalog == null || _activeMission == null || _catalog.Missions == null)
             {
-                return;
+                return null;
             }
 
             var missions = _catalog.Missions;
             var index = missions.IndexOf(_activeMission);
             if (index < 0)
             {
-                return;
+                return null;
             }
 
             for (var i = index + 1; i < missions.Count; i++)
@@ -261,9 +278,10 @@ namespace HackingProject.Infrastructure.Missions
                     continue;
                 }
 
-                SetActiveMission(next);
-                break;
+                return next;
             }
+
+            return null;
         }
 
         private static string GetMissionId(MissionDefinitionSO mission)

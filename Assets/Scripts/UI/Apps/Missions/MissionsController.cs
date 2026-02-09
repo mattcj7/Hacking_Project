@@ -11,8 +11,10 @@ namespace HackingProject.UI.Apps
         private const string DescriptionName = "mission-description";
         private const string RewardName = "mission-reward";
         private const string CompleteName = "mission-complete";
-        private const string ObjectivesName = "objectives-root";
-        private const string CompletedName = "completed-root";
+        private const string ObjectivesName = "missions-objectives";
+        private const string CompletedName = "missions-completed";
+        private const string NextMissionButtonName = "next-mission-button";
+        private const string NoMoreLabelName = "no-more-label";
         private const string ObjectiveClassName = "mission-objective";
         private const string ObjectiveCompleteClassName = "mission-objective-complete";
         private const string CompletedEntryClassName = "mission-completed-entry";
@@ -26,10 +28,13 @@ namespace HackingProject.UI.Apps
         private readonly Label _completeLabel;
         private readonly VisualElement _objectivesRoot;
         private readonly VisualElement _completedRoot;
+        private readonly Button _nextMissionButton;
+        private readonly Label _noMoreLabel;
         private IDisposable _startedSubscription;
         private IDisposable _objectiveSubscription;
         private IDisposable _completedSubscription;
         private bool _subscriptionsWired;
+        private bool _nextButtonWired;
 
         public MissionsController(VisualElement root, MissionService missionService, EventBus eventBus)
         {
@@ -42,6 +47,8 @@ namespace HackingProject.UI.Apps
             _completeLabel = root.Q<Label>(CompleteName);
             _objectivesRoot = root.Q<VisualElement>(ObjectivesName);
             _completedRoot = root.Q<VisualElement>(CompletedName);
+            _nextMissionButton = root.Q<Button>(NextMissionButtonName);
+            _noMoreLabel = root.Q<Label>(NoMoreLabelName);
         }
 
         public void Initialize()
@@ -54,6 +61,12 @@ namespace HackingProject.UI.Apps
                 _completedSubscription = _eventBus.Subscribe<MissionCompletedEvent>(_ => Refresh());
                 _root.RegisterCallback<DetachFromPanelEvent>(_ => Dispose());
                 _subscriptionsWired = true;
+            }
+
+            if (!_nextButtonWired && _nextMissionButton != null)
+            {
+                _nextMissionButton.clicked += OnNextMissionClicked;
+                _nextButtonWired = true;
             }
         }
 
@@ -82,6 +95,7 @@ namespace HackingProject.UI.Apps
                 SetCompletedVisible(false);
                 _objectivesRoot?.Clear();
                 UpdateCompletedList();
+                UpdateNextMissionControls();
                 return;
             }
 
@@ -101,6 +115,7 @@ namespace HackingProject.UI.Apps
             if (_objectivesRoot == null)
             {
                 UpdateCompletedList();
+                UpdateNextMissionControls();
                 return;
             }
 
@@ -110,6 +125,7 @@ namespace HackingProject.UI.Apps
             {
                 _objectivesRoot.Add(new Label("No objectives."));
                 UpdateCompletedList();
+                UpdateNextMissionControls();
                 return;
             }
 
@@ -129,6 +145,7 @@ namespace HackingProject.UI.Apps
             }
 
             UpdateCompletedList();
+            UpdateNextMissionControls();
         }
 
         private static string BuildObjectiveText(MissionObjectiveDefinition objective)
@@ -219,6 +236,47 @@ namespace HackingProject.UI.Apps
                 label.AddToClassList(CompletedEntryClassName);
                 label.style.marginBottom = i < completed.Count - 1 ? 4f : 0f;
                 _completedRoot.Add(label);
+            }
+        }
+
+        private void UpdateNextMissionControls()
+        {
+            if (_nextMissionButton == null && _noMoreLabel == null)
+            {
+                return;
+            }
+
+            var hasNext = _missionService != null
+                && _missionService.IsActiveMissionCompleted
+                && _missionService.TryGetNextMission(out var nextMission);
+
+            if (_nextMissionButton != null)
+            {
+                _nextMissionButton.style.display = hasNext ? DisplayStyle.Flex : DisplayStyle.None;
+                if (hasNext && nextMission != null)
+                {
+                    var title = string.IsNullOrWhiteSpace(nextMission.Title) ? nextMission.name : nextMission.Title;
+                    _nextMissionButton.text = $"Start {title}";
+                }
+            }
+
+            if (_noMoreLabel != null)
+            {
+                var showNoMore = _missionService != null && _missionService.IsActiveMissionCompleted && !hasNext;
+                _noMoreLabel.style.display = showNoMore ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+        }
+
+        private void OnNextMissionClicked()
+        {
+            if (_missionService == null)
+            {
+                return;
+            }
+
+            if (_missionService.TryStartNextMission())
+            {
+                Refresh();
             }
         }
     }

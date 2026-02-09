@@ -91,3 +91,16 @@ Add entries like:
 - Decision: Add a `WalletService` that tracks credits and publishes `CreditsChangedEvent`. Extend missions with `RewardCredits`, award them on completion, and auto-chain to the next mission in catalog order while tracking completed missions for UI.
 - Consequences: Credits and mission flow are instance-based and event-driven without adding global state.
 - Alternatives considered: No rewards; manual mission selection UI only; storing rewards in static singletons.
+
+## ADR-0016A: Missions UI Scroll Layout
+- Context: Missions UI content can overlap when content grows beyond the window size.
+- Decision: Wrap missions content in a ScrollView and use simple VisualElements/Labels for objectives and completed lists.
+- Consequences: Missions UI is resilient to long content without virtualization artifacts.
+- Alternatives considered: ListView virtualization; static layout without scrolling.
+
+## ADR-0016B: Notifications, Mission Progression UI, Window Resizing
+- Context: Need player feedback for rewards, clearer mission progression, and resizable windows.
+- Decision: Add a `NotificationService` that publishes toasts, add a Missions “Start Next Mission” button, and add a resize handle to the window template with pointer-based resizing.
+- Consequences: UI feedback and window interaction feel more responsive without per-frame polling.
+- Alternatives considered: No toast system; always auto-start next mission; fixed window sizes only.
+- Process: Every completed ticket adds a short ADR entry.

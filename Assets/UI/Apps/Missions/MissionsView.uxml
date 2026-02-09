@@ -1,13 +1,19 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
   <ui:Style src="MissionsView.uss" />
   <ui:VisualElement class="missions-root">
-    <ui:Label name="mission-title" text="Mission" class="missions-title" />
-    <ui:Label name="mission-description" text="" class="missions-description" />
-    <ui:Label name="mission-reward" text="" class="mission-reward" />
-    <ui:Label name="mission-complete" text="MISSION COMPLETE" class="mission-complete" />
-    <ui:Label text="Objectives" class="missions-section" />
-    <ui:VisualElement name="objectives-root" class="missions-objectives" />
-    <ui:Label text="Completed" class="missions-section missions-completed-header" />
-    <ui:VisualElement name="completed-root" class="missions-completed" />
+    <ui:ScrollView name="missions-scroll" class="missions-scroll">
+      <ui:VisualElement class="missions-content">
+        <ui:Label name="mission-title" text="Mission" class="missions-title" />
+        <ui:Label name="mission-description" text="" class="missions-description" />
+        <ui:Label name="mission-reward" text="" class="mission-reward" />
+        <ui:Label name="mission-complete" text="MISSION COMPLETE" class="mission-complete" />
+        <ui:Label text="Objectives" class="missions-section" />
+        <ui:VisualElement name="missions-objectives" class="missions-objectives" />
+        <ui:Label text="Completed" class="missions-section missions-completed-header" />
+        <ui:VisualElement name="missions-completed" class="missions-completed" />
+        <ui:Button name="next-mission-button" text="Start Next Mission" class="mission-next-button" />
+        <ui:Label name="no-more-label" text="No more missions" class="mission-no-more" />
+      </ui:VisualElement>
+    </ui:ScrollView>
   </ui:VisualElement>
 </ui:UXML>

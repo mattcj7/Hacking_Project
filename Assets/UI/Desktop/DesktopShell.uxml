@@ -2,6 +2,7 @@
   <ui:Style src="DesktopShell.uss" />
   <ui:VisualElement class="desktop-root">
     <ui:VisualElement name="windows-layer" class="windows-layer" />
+    <ui:VisualElement name="toast-container" class="toast-container" />
     <ui:VisualElement class="taskbar">
       <ui:Label name="brand-label" text="HackingOS" class="taskbar-label taskbar-brand" />
       <ui:VisualElement name="taskbar-apps" class="taskbar-apps" />

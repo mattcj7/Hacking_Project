@@ -6,5 +6,6 @@
       <ui:Button name="close-button" text="X" class="window-close" />
     </ui:VisualElement>
     <ui:VisualElement name="content" class="window-content" />
+    <ui:VisualElement name="resize-handle" class="window-resize-handle" />
   </ui:VisualElement>
 </ui:UXML>

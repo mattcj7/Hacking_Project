@@ -79,7 +79,7 @@ namespace HackingProject.Tests.EditMode
         }
 
         [Test]
-        public void MissionChain_StartsNextMissionInCatalog()
+        public void MissionChain_StartsNextMissionInCatalog_WhenRequested()
         {
             var eventBus = new EventBus();
             var wallet = new WalletService(eventBus, 0);
@@ -95,6 +95,10 @@ namespace HackingProject.Tests.EditMode
             eventBus.Publish(new TerminalCommandExecutedEvent("cd", new[] { "docs" }, "/home/user", "/home/user/docs"));
             eventBus.Publish(new TerminalCommandExecutedEvent("cat", new[] { "readme.txt" }, "/home/user/docs", "/home/user/docs/readme.txt"));
 
+            Assert.IsTrue(service.IsActiveMissionCompleted);
+            Assert.IsTrue(service.TryGetNextMission(out var next));
+            Assert.AreSame(second, next);
+            Assert.IsTrue(service.TryStartNextMission());
             Assert.AreSame(second, service.ActiveMission);
         }
 

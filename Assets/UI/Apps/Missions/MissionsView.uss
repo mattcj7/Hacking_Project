@@ -1,9 +1,19 @@
 .missions-root {
   flex-direction: column;
   flex-grow: 1;
-  padding: 12px;
+  height: 100%;
   background-color: #0b0f14;
   color: #e3f2ff;
+}
+
+.missions-scroll {
+  flex-grow: 1;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.missions-content {
+  flex-direction: column;
 }
 
 .missions-title {
@@ -48,8 +58,18 @@
   margin-top: 4px;
 }
 
-.mission-objective {
+.mission-next-button {
+  margin-top: 8px;
   margin-bottom: 4px;
+}
+
+.mission-no-more {
+  color: #8aa0b8;
+  margin-bottom: 4px;
+}
+
+.mission-objective {
+  margin-bottom: 6px;
 }
 
 .mission-objective-complete {
@@ -58,6 +78,7 @@
 
 .mission-completed-entry {
   color: #8aa0b8;
+  margin-bottom: 4px;
 }
 
 .missions-root .unity-text-element {

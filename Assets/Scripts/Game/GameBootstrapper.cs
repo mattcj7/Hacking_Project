@@ -1,6 +1,7 @@
 using System;
 using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Missions;
+using HackingProject.Infrastructure.Notifications;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
@@ -24,11 +25,14 @@ namespace HackingProject.Game
         private SaveService _saveService;
         private SaveGameData _saveData;
         private MissionService _missionService;
+        private NotificationService _notificationService;
         private TimeService _timeService;
         private VirtualFileSystem _vfs;
         private WalletService _walletService;
         private IDisposable _stateChangedSubscription;
         private IDisposable _creditsSubscription;
+        private IDisposable _missionCompletedSubscription;
+        private IDisposable _missionRewardSubscription;
 
         public EventBus EventBus => _eventBus;
         public TimeService TimeService => _timeService;
@@ -44,6 +48,9 @@ namespace HackingProject.Game
             _timeService = new TimeService(_eventBus);
             _saveService = new SaveService(Application.persistentDataPath);
             _vfs = DefaultVfsFactory.Create();
+            _notificationService = new NotificationService(_eventBus);
+            _missionCompletedSubscription = _eventBus.Subscribe<MissionCompletedEvent>(OnMissionCompleted);
+            _missionRewardSubscription = _eventBus.Subscribe<MissionRewardGrantedEvent>(OnMissionRewardGranted);
 
 #if UNITY_EDITOR
             if (missionCatalog == null)
@@ -102,6 +109,8 @@ namespace HackingProject.Game
         {
             _stateChangedSubscription?.Dispose();
             _creditsSubscription?.Dispose();
+            _missionCompletedSubscription?.Dispose();
+            _missionRewardSubscription?.Dispose();
             _missionService?.Dispose();
         }
 
@@ -173,6 +182,30 @@ namespace HackingProject.Game
             if (_saveData.OsSession == null)
             {
                 _saveData.OsSession = new OsSessionData();
+            }
+        }
+
+        private void OnMissionCompleted(MissionCompletedEvent evt)
+        {
+            if (_notificationService == null || evt.Mission == null)
+            {
+                return;
+            }
+
+            var title = string.IsNullOrWhiteSpace(evt.Mission.Title) ? evt.Mission.name : evt.Mission.Title;
+            _notificationService.Post($"Mission Complete: {title}");
+        }
+
+        private void OnMissionRewardGranted(MissionRewardGrantedEvent evt)
+        {
+            if (_notificationService == null)
+            {
+                return;
+            }
+
+            if (evt.RewardCredits != 0)
+            {
+                _notificationService.Post($"+{evt.RewardCredits} Credits");
             }
         }
 

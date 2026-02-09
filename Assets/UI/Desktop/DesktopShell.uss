@@ -48,3 +48,24 @@
 .taskbar-credits {
   margin-right: 12px;
 }
+
+.toast-container {
+  position: absolute;
+  right: 16px;
+  bottom: 64px;
+  width: 280px;
+  flex-direction: column;
+}
+
+.toast {
+  background-color: #1a2330;
+  border-width: 1px;
+  border-color: #2a3644;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.toast-text {
+  color: #d6e2f0;
+  font-size: 12px;
+}

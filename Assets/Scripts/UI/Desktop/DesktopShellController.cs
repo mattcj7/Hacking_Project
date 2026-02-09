@@ -23,6 +23,7 @@ namespace HackingProject.UI.Desktop
         private const string TaskbarAppsName = "taskbar-apps";
         private const string TaskbarAppsClassName = "taskbar-apps";
         private const string TaskbarClassName = "taskbar";
+        private const string ToastContainerName = "toast-container";
         private const string WindowTemplatePath = "Assets/UI/Windows/Window.uxml";
         private const string AppCatalogPath = "Assets/ScriptableObjects/Apps/AppCatalog_Default.asset";
 
@@ -33,9 +34,11 @@ namespace HackingProject.UI.Desktop
         private Label _creditsLabel;
         private VisualElement _windowsLayer;
         private VisualElement _taskbarApps;
+        private VisualElement _toastContainer;
         private WindowManager _windowManager;
         private AppRegistry _appRegistry;
         private AppLauncher _appLauncher;
+        private ToastController _toastController;
         private ITimeServiceProvider _timeServiceProvider;
         private IMissionServiceProvider _missionServiceProvider;
         private IWalletServiceProvider _walletServiceProvider;
@@ -49,6 +52,7 @@ namespace HackingProject.UI.Desktop
         private bool _loggedMissingTimeService;
         private bool _loggedMissingMissionService;
         private bool _loggedMissingWalletService;
+        private bool _loggedMissingToastContainer;
         private bool _loggedMissingSaveProvider;
         private bool _hasStarted;
         private bool _sessionRestored;
@@ -97,6 +101,16 @@ namespace HackingProject.UI.Desktop
             if (_windowsLayer == null)
             {
                 Debug.LogWarning($"[DesktopShellController] Windows layer '{WindowsLayerName}' not found.");
+            }
+
+            _toastContainer = root?.Q<VisualElement>(ToastContainerName);
+            if (_toastContainer == null)
+            {
+                if (!_loggedMissingToastContainer)
+                {
+                    Debug.LogWarning($"[DesktopShellController] Toast container '{ToastContainerName}' not found.");
+                    _loggedMissingToastContainer = true;
+                }
             }
 
             _taskbarApps = root?.Q<VisualElement>(TaskbarAppsName);
@@ -169,6 +183,7 @@ namespace HackingProject.UI.Desktop
             }
 
             TryHookTimeService();
+            TryHookNotifications();
             TryHookMissionService();
             TryHookWalletService();
             TryHookVfs();
@@ -179,6 +194,7 @@ namespace HackingProject.UI.Desktop
         {
             _hasStarted = true;
             TryHookTimeService();
+            TryHookNotifications();
             TryHookMissionService();
             TryHookWalletService();
             TryHookVfs();
@@ -193,6 +209,8 @@ namespace HackingProject.UI.Desktop
             _saveSessionSubscription = null;
             _creditsSubscription?.Dispose();
             _creditsSubscription = null;
+            _toastController?.Dispose();
+            _toastController = null;
         }
 
         private void PopulateTaskbar()
@@ -296,6 +314,26 @@ namespace HackingProject.UI.Desktop
 
             _creditsSubscription = _timeServiceProvider.EventBus.Subscribe<CreditsChangedEvent>(OnCreditsChanged);
             UpdateCredits(_walletServiceProvider.WalletService.Credits);
+        }
+
+        private void TryHookNotifications()
+        {
+            if (_toastController != null || _toastContainer == null)
+            {
+                return;
+            }
+
+            if (_timeServiceProvider == null)
+            {
+                _timeServiceProvider = FindTimeServiceProvider();
+            }
+
+            if (_timeServiceProvider?.EventBus == null)
+            {
+                return;
+            }
+
+            _toastController = new ToastController(_toastContainer, _timeServiceProvider.EventBus);
         }
 
         private void TryHookMissionService()

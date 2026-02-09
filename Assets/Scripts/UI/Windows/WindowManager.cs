@@ -102,6 +102,23 @@ namespace HackingProject.UI.Windows
             });
             view.TitleBar.RegisterCallback<PointerCaptureOutEvent>(_ => view.CancelDrag());
             view.CloseButton.clicked += () => CloseWindow(view);
+
+            view.ResizeHandle.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                BringToFront(view);
+                view.BeginResize(evt.position, evt.pointerId);
+                view.ResizeHandle.CapturePointer(evt.pointerId);
+            });
+            view.ResizeHandle.RegisterCallback<PointerMoveEvent>(evt => view.UpdateResize(evt.position, evt.pointerId));
+            view.ResizeHandle.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                view.EndResize(evt.pointerId);
+                if (view.ResizeHandle.HasPointerCapture(evt.pointerId))
+                {
+                    view.ResizeHandle.ReleasePointer(evt.pointerId);
+                }
+            });
+            view.ResizeHandle.RegisterCallback<PointerCaptureOutEvent>(_ => view.CancelResize());
         }
     }
 }
