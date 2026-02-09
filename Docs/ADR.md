@@ -104,3 +104,9 @@ Add entries like:
 - Consequences: UI feedback and window interaction feel more responsive without per-frame polling.
 - Alternatives considered: No toast system; always auto-start next mission; fixed window sizes only.
 - Process: Every completed ticket adds a short ADR entry.
+
+## ADR-0016C: Window Instance Safety + Drag/Resize Clamp
+- Context: Window instances must behave independently and remain reachable on screen.
+- Decision: Keep per-window drag/resize state, clone window visuals per instance, isolate resize by capturing pointer on the handle and stopping event propagation, and clamp window positions to desktop bounds on drag/resize end and focus.
+- Consequences: Windows remain independently draggable/resizable without getting lost off-screen.
+- Alternatives considered: Shared drag state; no clamping; fixed window positions.

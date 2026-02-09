@@ -30,6 +30,7 @@ namespace HackingProject.UI.Apps
         private readonly VisualElement _completedRoot;
         private readonly Button _nextMissionButton;
         private readonly Label _noMoreLabel;
+        private MissionDefinitionSO _cachedNextMission;
         private IDisposable _startedSubscription;
         private IDisposable _objectiveSubscription;
         private IDisposable _completedSubscription;
@@ -246,16 +247,18 @@ namespace HackingProject.UI.Apps
                 return;
             }
 
+            MissionDefinitionSO nextMission = null;
             var hasNext = _missionService != null
                 && _missionService.IsActiveMissionCompleted
-                && _missionService.TryGetNextMission(out var nextMission);
+                && _missionService.TryGetNextMission(out nextMission);
+            _cachedNextMission = hasNext ? nextMission : null;
 
             if (_nextMissionButton != null)
             {
                 _nextMissionButton.style.display = hasNext ? DisplayStyle.Flex : DisplayStyle.None;
-                if (hasNext && nextMission != null)
+                if (hasNext && _cachedNextMission != null)
                 {
-                    var title = string.IsNullOrWhiteSpace(nextMission.Title) ? nextMission.name : nextMission.Title;
+                    var title = string.IsNullOrWhiteSpace(_cachedNextMission.Title) ? _cachedNextMission.name : _cachedNextMission.Title;
                     _nextMissionButton.text = $"Start {title}";
                 }
             }
@@ -269,15 +272,13 @@ namespace HackingProject.UI.Apps
 
         private void OnNextMissionClicked()
         {
-            if (_missionService == null)
+            if (_missionService == null || _cachedNextMission == null)
             {
                 return;
             }
 
-            if (_missionService.TryStartNextMission())
-            {
-                Refresh();
-            }
+            _missionService.SetActiveMission(_cachedNextMission);
+            Refresh();
         }
     }
 }

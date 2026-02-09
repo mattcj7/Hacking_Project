@@ -1,72 +1,43 @@
 ﻿## Current Ticket
 
-## Ticket 0016B - Notifications + Start Next Mission + Resizable windows + ADR + TICKETS bookkeeping
+## Ticket 0016C - Fix window resize/drag interaction (no snapping, per-window, clamp onscreen)
 
 **Goal:**  
-Improve UX and “OS feel” with:
-- Toast notifications (mission complete, credits gained)
-- Start Next Mission button in Missions app
-- Window resizing via drag handle
-- Ensure ADR.md and TICKETS.md bookkeeping stays current
+Fix UI Toolkit window interactions:
+- Resize handle works (bottom-right)
+- Resizing does NOT trigger titlebar dragging or snap windows
+- Drag affects only the active window
+- Clamp windows so the titlebar can’t be lost off-screen
 
-**Non-goals:**  
-- No new mission logic types
-- No store/inventory yet
-- No animation-heavy UI (keep lightweight)
-- No real OS/network access (fictional only)
+**Background / Issue (repro):**
+- Resize handle is visible but dragging it does nothing
+- On release, window snaps to the left edge / toggles positions
+- With two windows open, interacting with resize on one can move the other or push it above the game view
 
 **Acceptance criteria:**
+- [ ] Resize handle captures pointer and receives move events (PointerCapture)
+- [ ] Resize handler stops event propagation so titlebar drag never runs:
+  - [ ] StopImmediatePropagation + StopPropagation on down/move/up
+- [ ] Resizing changes only `style.width` / `style.height` (min 320x200) and does not modify left/top
+- [ ] Drag handler ignores input while window is resizing
+- [ ] No shared/static drag/resize state across windows
+- [ ] After drag end (and after restore), clamp window position inside desktop bounds:
+  - [ ] Keep titlebar reachable (top >= 0; left within bounds)
+- [ ] Unity compiles with 0 errors and behavior verified with two windows open
 
-### A) Toast notifications (desktop-level)
-- [ ] Add a small notification system:
-  - [ ] `NotificationService` (plain C#) posts notifications via EventBus (e.g., `NotificationPostedEvent`)
-  - [ ] DesktopShell displays a toast stack (top-right or bottom-right)
-  - [ ] Toasts auto-dismiss after N seconds (e.g., 3.5s) without per-frame polling
-- [ ] Post notifications on:
-  - [ ] Mission completion (“Mission Complete: <Title>”)
-  - [ ] Credits awarded (“+X Credits”)
-- [ ] Toast UI uses shared theme and is readable
-
-### B) Missions app: Start Next Mission button
-- [ ] When active mission is Completed and a next mission exists (catalog order):
-  - [ ] Show a `Start Next Mission` button
-  - [ ] Clicking starts the next mission and refreshes Missions UI
-- [ ] If no next mission exists:
-  - [ ] Show “No more missions” (minimal) and hide/disable the button
-
-### C) Window resizing
-- [ ] Add resize support to windows:
-  - [ ] Window template includes a bottom-right resize handle element
-  - [ ] Dragging the handle resizes by setting `style.width` and `style.height`
-  - [ ] Enforce minimum size (e.g., 320x200)
-  - [ ] Uses UI Toolkit pointer events with pointer capture during resize drag
-  - [ ] Resizing does not break existing focus/drag/close behaviors
-  - [ ] Window contents still layout correctly after resize
-
-### D) Documentation discipline (ADR + Tickets)
-- [ ] Update `Docs/ADR.md` by appending:
-  - [ ] **ADR-0016A**: Missions UI scroll/non-overlapping layout approach (if not already present)
-  - [ ] **ADR-0016B**: Toast notifications + resize handle approach + Start Next Mission UX
-  - [ ] Add/append a short process rule: “Each completed ticket must add/update ADR.md”
-- [ ] Update `Docs/TICKETS.md`:
-  - [ ] Append `0016B` under `## Completed - Support/Fix Tickets (non-ADR)`
-  - [ ] If `0016A` is not yet listed there, add it too
-
-**Files allowed to edit:**  
-- `Assets/Scripts/Infrastructure/**`
-- `Assets/Scripts/UI/**`
-- `Assets/UI/**`
+**Files allowed to edit:**
+- `Assets/Scripts/UI/Desktop/**` (WindowView/WindowManager interactions)
+- `Assets/UI/**` (window template UXML/USS if needed)
 - `Docs/ADR.md`
 - `Docs/TICKETS.md`
-- `AGENTS.md` (optional, only if used for the process rule)
 
 **Test plan:**
 1. Play Bootstrap
-2. Complete a mission; confirm toasts appear for mission complete + credits
-3. Open Missions app; click “Start Next Mission”; verify next mission starts
-4. Resize a window via bottom-right handle; confirm min size and content reflows
-5. Confirm Console has 0 errors/warnings
-
+2. Open Terminal + Missions
+3. Resize each using handle: width/height changes live
+4. Drag each: only that one moves
+5. Resize does not cause snap/jump or move the other window
+6. Try to drag near edges: titlebar stays recoverable
 
 
 
@@ -95,3 +66,4 @@ Improve UX and “OS feel” with:
 - **0016** - Credits rewards + mission chaining
 - **0016A** - Missions window: fix overlapping text + add scrolling + consistent styling
 - **0016B** - Toast notifications + mission progression UI + window resizing
+- **0016C** - Window instance safety + drag/resize clamp

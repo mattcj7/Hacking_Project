@@ -41,6 +41,7 @@ namespace HackingProject.UI.Windows
         public VisualElement ContentRoot { get; }
         public VisualElement ResizeHandle { get; }
         public Vector2 Position => _position;
+        public bool IsResizing => _isResizing;
 
         public static WindowView Create(VisualTreeAsset template)
         {
@@ -61,6 +62,7 @@ namespace HackingProject.UI.Windows
                 throw new InvalidOperationException("[WindowView] Window template is missing required elements.");
             }
 
+            resizeHandle.pickingMode = PickingMode.Position;
             return new WindowView(root, titleBar, titleLabel, closeButton, content, resizeHandle);
         }
 
@@ -78,6 +80,11 @@ namespace HackingProject.UI.Windows
 
         public void BeginDrag(Vector2 pointerPosition, int pointerId)
         {
+            if (_isResizing)
+            {
+                return;
+            }
+
             if (_isDragging)
             {
                 return;
@@ -91,6 +98,11 @@ namespace HackingProject.UI.Windows
 
         public void UpdateDrag(Vector2 pointerPosition, int pointerId)
         {
+            if (_isResizing)
+            {
+                return;
+            }
+
             if (!_isDragging || pointerId != _dragPointerId)
             {
                 return;
