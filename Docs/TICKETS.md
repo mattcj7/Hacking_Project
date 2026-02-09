@@ -1,40 +1,100 @@
 ﻿## Current Ticket
 
-## Ticket 0015A - Mission completion (set state + fire MissionCompletedEvent + UI shows completed)
+## Ticket 0016 - Rewards + Credits + Mission chaining (persisted progression loop)
 
 **Goal:**  
-When all objectives are completed, the mission should transition to **Completed**, publish `MissionCompletedEvent`, and the Missions app UI should visibly reflect completion.
+Turn missions into a real progression loop by adding:
+- Credits (wallet) as the first reward currency
+- Auto-award credits on mission completion
+- Persist credits via existing SaveGameData / SaveService
+- Mission chaining: after completion, move to Completed and start the next mission (or allow selection)
 
 **Non-goals:**  
-- No rewards/economy yet
-- No mission chains/next-mission selection (optional stub only)
+- No store/shop UI yet
+- No item inventory yet
+- No balance tuning
+- No branching narrative
+- No real-world hacking functionality (keep everything fictional and simulated)
 
 **Acceptance criteria:**
-- [ ] `MissionService` detects when **all objectives are complete** and then:
-  - [ ] sets mission state to `Completed`
-  - [ ] publishes `MissionCompletedEvent` exactly once
-  - [ ] prevents repeated completion firing if additional events arrive
-- [ ] Missions UI updates on completion:
-  - [ ] Shows a clear “MISSION COMPLETE” indicator (badge/text)
-  - [ ] (Optional) moves mission to a Completed section OR clears Active mission display
-- [ ] Ensure objective completion triggers a mission completion check immediately after the last objective completes (no polling)
-- [ ] Add/Edit EditMode tests:
-  - [ ] Completing final objective fires `MissionCompletedEvent`
-  - [ ] Mission state is `Completed` after final objective
-- [ ] Unity compiles with 0 errors; tests pass
+
+### Credits / Wallet
+- [ ] Add `Credits` as the canonical currency field in `SaveGameData` (if it already exists, standardize on it)
+- [ ] Add a small runtime service (plain C#) e.g. `WalletService` owned by `GameBootstrapper`:
+  - [ ] `int Credits { get; }`
+  - [ ] `void AddCredits(int amount, string reason)`
+  - [ ] Publishes `CreditsChangedEvent` via EventBus
+- [ ] On startup:
+  - [ ] WalletService initializes from loaded SaveGameData.Credits
+  - [ ] Saving writes updated Credits back into SaveGameData
+
+### Mission rewards
+- [ ] Extend `MissionDefinitionSO` to include reward data:
+  - [ ] `int RewardCredits` (default 0)
+- [ ] On mission completion:
+  - [ ] MissionService awards credits via WalletService exactly once
+  - [ ] MissionService ensures rewards are not double-awarded (guard/state)
+  - [ ] Publishes `MissionRewardGrantedEvent` (includes amount + mission id)
+
+### Mission chaining / mission list
+- [ ] Add mission status tracking:
+  - [ ] Track Completed mission ids (in memory at minimum)
+  - [ ] Missions UI shows:
+    - Active mission
+    - Completed missions list (at least mission title + “Completed”)
+- [ ] Chaining behavior (pick one; implement minimal):
+  - Option A (recommended): MissionCatalog order-based chain:
+    - After completing mission i, automatically start mission i+1 if exists
+  - Option B: UI selection:
+    - Missions app shows available missions; player clicks “Start”
+- [ ] Add at least one additional mission asset in `MissionCatalog_Default`:
+  - [ ] `M002_DownloadsAudit` (example objectives):
+    - Terminal: `cd downloads`
+    - Terminal: `ls`
+    - File Manager: open `todo.txt` (or Terminal `cat todo.txt`)
+  - Ensure the default VFS contains the needed file(s) under `/home/user/downloads/`
+
+### UI
+- [ ] Taskbar shows Credits value (same theme as Terminal/FileManager)
+  - [ ] Updates when CreditsChangedEvent fires
+- [ ] Missions app UI displays reward for active mission and/or completion summary:
+  - [ ] Show “Reward: +<credits> credits”
+  - [ ] When mission completes, show “MISSION COMPLETE” and “Reward Granted”
+- [ ] (Optional but small) Add a simple toast/notification:
+  - On reward grant, show “+X Credits” somewhere non-intrusive
+
+### Tests
+- [ ] EditMode tests:
+  - [ ] Completing mission triggers MissionCompletedEvent and awards credits once
+  - [ ] CreditsChangedEvent fires with correct delta
+  - [ ] Chaining starts the next mission (if Option A), or mission list exposes missions for UI (if Option B)
+- [ ] Unity compiles with 0 errors and tests are green
 
 **Files allowed to edit:**  
 - `Assets/Scripts/Infrastructure/**`
 - `Assets/Scripts/Game/**`
-- `Assets/Scripts/UI/Apps/Missions/**`
+- `Assets/Scripts/UI/**`
+- `Assets/UI/**`
+- `Assets/ScriptableObjects/**`
 - `Assets/Tests/EditMode/**`
+- `Docs/ADR.md`
+
+**Implementation notes:**
+- Keep everything instance-based (no static globals)
+- Avoid per-frame allocations; UI updates should be event-driven
+- Keep reward logic deterministic and idempotent
 
 **Test plan:**
 1. Run EditMode tests (all green)
 2. Play Bootstrap
-3. Open Missions app and Terminal
-4. Complete objectives (`cd docs`, `cat readme.txt`)
-5. Confirm UI shows “MISSION COMPLETE” and completion event occurs
+3. Open Missions app and confirm mission 1 is active with reward displayed
+4. Complete mission 1 objectives
+5. Confirm:
+   - Mission shows completed
+   - Credits increase and appear in taskbar
+   - Next mission starts (or becomes selectable)
+6. Confirm Console has 0 errors
+
 
 
 
@@ -59,3 +119,4 @@ When all objectives are completed, the mission should transition to **Completed*
 - **0013** — Shared theme USS + File Manager matches Terminal color scheme
 - **0014** - Persist OS Session State (open apps/windows + last paths persisted/restored)
 - **0015** - Mission System v1 (SO missions + objectives + Missions app UI)
+- **0015A** - Mission completion state + UI indicator
