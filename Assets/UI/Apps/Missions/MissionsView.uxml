@@ -3,8 +3,11 @@
   <ui:VisualElement class="missions-root">
     <ui:Label name="mission-title" text="Mission" class="missions-title" />
     <ui:Label name="mission-description" text="" class="missions-description" />
+    <ui:Label name="mission-reward" text="" class="mission-reward" />
     <ui:Label name="mission-complete" text="MISSION COMPLETE" class="mission-complete" />
     <ui:Label text="Objectives" class="missions-section" />
     <ui:VisualElement name="objectives-root" class="missions-objectives" />
+    <ui:Label text="Completed" class="missions-section missions-completed-header" />
+    <ui:VisualElement name="completed-root" class="missions-completed" />
   </ui:VisualElement>
 </ui:UXML>

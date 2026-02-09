@@ -18,6 +18,12 @@
   margin-bottom: 8px;
 }
 
+.mission-reward {
+  font-size: 12px;
+  color: #cfe8cf;
+  margin-bottom: 8px;
+}
+
 .mission-complete {
   font-size: 12px;
   color: #9ad19a;
@@ -33,11 +39,24 @@
   flex-direction: column;
 }
 
+.missions-completed-header {
+  margin-top: 8px;
+}
+
+.missions-completed {
+  flex-direction: column;
+  margin-top: 4px;
+}
+
 .mission-objective {
   margin-bottom: 4px;
 }
 
 .mission-objective-complete {
+  color: #8aa0b8;
+}
+
+.mission-completed-entry {
   color: #8aa0b8;
 }
 

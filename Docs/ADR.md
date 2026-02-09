@@ -85,3 +85,9 @@ Add entries like:
 - Decision: Add ScriptableObject-driven missions (`MissionDefinitionSO` + `MissionCatalogSO`) and a `MissionService` that subscribes to `TerminalCommandExecutedEvent`/`FileManagerOpenedFileEvent` and publishes mission lifecycle events. Provide a Missions app window to display the active mission and objective state.
 - Consequences: Missions are data-driven and evaluated without polling, keeping systems decoupled and testable.
 - Alternatives considered: Hardcoded mission checks in UI; polling the VFS/Terminal state each frame.
+
+## ADR-0016: Wallet Credits + Mission Rewards + Chaining
+- Context: Missions need a minimal progression loop with rewards and simple sequencing.
+- Decision: Add a `WalletService` that tracks credits and publishes `CreditsChangedEvent`. Extend missions with `RewardCredits`, award them on completion, and auto-chain to the next mission in catalog order while tracking completed missions for UI.
+- Consequences: Credits and mission flow are instance-based and event-driven without adding global state.
+- Alternatives considered: No rewards; manual mission selection UI only; storing rewards in static singletons.

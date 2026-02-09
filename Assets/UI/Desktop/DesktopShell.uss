@@ -44,3 +44,7 @@
   font-size: 14px;
   -unity-font-style: bold;
 }
+
+.taskbar-credits {
+  margin-right: 12px;
+}

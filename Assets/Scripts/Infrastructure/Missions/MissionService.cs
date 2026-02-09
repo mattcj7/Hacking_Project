@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Terminal;
 using HackingProject.Infrastructure.Vfs;
+using HackingProject.Infrastructure.Wallet;
 
 namespace HackingProject.Infrastructure.Missions
 {
@@ -10,19 +11,26 @@ namespace HackingProject.Infrastructure.Missions
     {
         private readonly EventBus _eventBus;
         private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
+        private readonly List<MissionDefinitionSO> _completedMissions = new List<MissionDefinitionSO>();
+        private readonly HashSet<string> _completedMissionIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _rewardedMissionIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private MissionDefinitionSO _activeMission;
         private bool[] _objectiveStates = Array.Empty<bool>();
         private bool _missionCompleted;
+        private MissionCatalogSO _catalog;
+        private readonly WalletService _walletService;
 
-        public MissionService(EventBus eventBus)
+        public MissionService(EventBus eventBus, WalletService walletService)
         {
             _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+            _walletService = walletService;
             _subscriptions.Add(_eventBus.Subscribe<TerminalCommandExecutedEvent>(OnTerminalCommandExecuted));
             _subscriptions.Add(_eventBus.Subscribe<FileManagerOpenedFileEvent>(OnFileManagerOpenedFile));
         }
 
         public MissionDefinitionSO ActiveMission => _activeMission;
         public bool IsActiveMissionCompleted => _missionCompleted;
+        public IReadOnlyList<MissionDefinitionSO> CompletedMissions => _completedMissions;
 
         public bool IsObjectiveCompleted(int index)
         {
@@ -41,6 +49,11 @@ namespace HackingProject.Infrastructure.Missions
                 _eventBus.Publish(new MissionStartedEvent(mission));
                 TryCompleteMission();
             }
+        }
+
+        public void SetCatalog(MissionCatalogSO catalog)
+        {
+            _catalog = catalog;
         }
 
         public void Dispose()
@@ -159,7 +172,10 @@ namespace HackingProject.Infrastructure.Missions
             }
 
             _missionCompleted = true;
+            TrackCompletion(_activeMission);
             _eventBus.Publish(new MissionCompletedEvent(_activeMission));
+            TryGrantReward(_activeMission);
+            TryStartNextMission();
         }
 
         private bool AreAllObjectivesComplete()
@@ -173,6 +189,91 @@ namespace HackingProject.Infrastructure.Missions
             }
 
             return true;
+        }
+
+        private void TrackCompletion(MissionDefinitionSO mission)
+        {
+            if (mission == null)
+            {
+                return;
+            }
+
+            var missionId = GetMissionId(mission);
+            if (string.IsNullOrWhiteSpace(missionId))
+            {
+                return;
+            }
+
+            if (_completedMissionIds.Add(missionId))
+            {
+                _completedMissions.Add(mission);
+            }
+        }
+
+        private void TryGrantReward(MissionDefinitionSO mission)
+        {
+            if (mission == null || _walletService == null)
+            {
+                return;
+            }
+
+            var reward = mission.RewardCredits;
+            if (reward == 0)
+            {
+                return;
+            }
+
+            var missionId = GetMissionId(mission);
+            if (string.IsNullOrWhiteSpace(missionId) || !_rewardedMissionIds.Add(missionId))
+            {
+                return;
+            }
+
+            _walletService.AddCredits(reward, $"Mission {missionId}");
+            _eventBus.Publish(new MissionRewardGrantedEvent(missionId, reward));
+        }
+
+        private void TryStartNextMission()
+        {
+            if (_catalog == null || _activeMission == null || _catalog.Missions == null)
+            {
+                return;
+            }
+
+            var missions = _catalog.Missions;
+            var index = missions.IndexOf(_activeMission);
+            if (index < 0)
+            {
+                return;
+            }
+
+            for (var i = index + 1; i < missions.Count; i++)
+            {
+                var next = missions[i];
+                if (next == null)
+                {
+                    continue;
+                }
+
+                var nextId = GetMissionId(next);
+                if (!string.IsNullOrWhiteSpace(nextId) && _completedMissionIds.Contains(nextId))
+                {
+                    continue;
+                }
+
+                SetActiveMission(next);
+                break;
+            }
+        }
+
+        private static string GetMissionId(MissionDefinitionSO mission)
+        {
+            if (mission == null)
+            {
+                return null;
+            }
+
+            return string.IsNullOrWhiteSpace(mission.Id) ? mission.name : mission.Id;
         }
 
         private static bool CommandMatches(string expected, string actual)

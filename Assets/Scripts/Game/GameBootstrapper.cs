@@ -4,6 +4,7 @@ using HackingProject.Infrastructure.Missions;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
+using HackingProject.Infrastructure.Wallet;
 using UnityEngine;
 using UnityEngine.InputSystem;
 #if UNITY_EDITOR
@@ -12,7 +13,7 @@ using UnityEditor;
 
 namespace HackingProject.Game
 {
-    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider, IMissionServiceProvider
+    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider, IMissionServiceProvider, IWalletServiceProvider
     {
         private const string MissionCatalogPath = "Assets/ScriptableObjects/Missions/MissionCatalog_Default.asset";
 
@@ -25,13 +26,16 @@ namespace HackingProject.Game
         private MissionService _missionService;
         private TimeService _timeService;
         private VirtualFileSystem _vfs;
+        private WalletService _walletService;
         private IDisposable _stateChangedSubscription;
+        private IDisposable _creditsSubscription;
 
         public EventBus EventBus => _eventBus;
         public TimeService TimeService => _timeService;
         public VirtualFileSystem Vfs => _vfs;
         public SaveGameData SaveData => _saveData;
         public MissionService MissionService => _missionService;
+        public WalletService WalletService => _walletService;
 
         private void Awake()
         {
@@ -39,7 +43,6 @@ namespace HackingProject.Game
             _stateMachine = new GameStateMachine(_eventBus);
             _timeService = new TimeService(_eventBus);
             _saveService = new SaveService(Application.persistentDataPath);
-            _missionService = new MissionService(_eventBus);
             _vfs = DefaultVfsFactory.Create();
 
 #if UNITY_EDITOR
@@ -52,11 +55,6 @@ namespace HackingProject.Game
                 }
             }
 #endif
-
-            if (missionCatalog != null && missionCatalog.Missions != null && missionCatalog.Missions.Count > 0)
-            {
-                _missionService.SetActiveMission(missionCatalog.Missions[0]);
-            }
 
             var gameplayState = new GameplayState();
             var mainMenuState = new MainMenuState(_stateMachine, gameplayState);
@@ -78,6 +76,18 @@ namespace HackingProject.Game
                 Debug.Log("[SaveService] Created new save.");
             }
 
+            _walletService = new WalletService(_eventBus, _saveData?.Credits ?? 0);
+            _creditsSubscription = _eventBus.Subscribe<CreditsChangedEvent>(OnCreditsChanged);
+            _missionService = new MissionService(_eventBus, _walletService);
+            if (missionCatalog != null && missionCatalog.Missions != null)
+            {
+                _missionService.SetCatalog(missionCatalog);
+                if (missionCatalog.Missions.Count > 0)
+                {
+                    _missionService.SetActiveMission(missionCatalog.Missions[0]);
+                }
+            }
+
             _stateMachine.ChangeState(bootState);
         }
 
@@ -91,6 +101,7 @@ namespace HackingProject.Game
         private void OnDestroy()
         {
             _stateChangedSubscription?.Dispose();
+            _creditsSubscription?.Dispose();
             _missionService?.Dispose();
         }
 
@@ -123,6 +134,10 @@ namespace HackingProject.Game
             try
             {
                 EnsureSessionData();
+                if (_walletService != null)
+                {
+                    _saveData.Credits = _walletService.Credits;
+                }
                 _eventBus.Publish(new SaveSessionCaptureEvent(_saveData.OsSession));
                 _saveService.Save(_saveData);
                 _eventBus.Publish(new SaveCompletedEvent(_saveData));
@@ -159,6 +174,16 @@ namespace HackingProject.Game
             {
                 _saveData.OsSession = new OsSessionData();
             }
+        }
+
+        private void OnCreditsChanged(CreditsChangedEvent evt)
+        {
+            if (_saveData == null)
+            {
+                return;
+            }
+
+            _saveData.Credits = evt.CurrentCredits;
         }
     }
 }

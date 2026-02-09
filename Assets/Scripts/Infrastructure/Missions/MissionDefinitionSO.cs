@@ -9,6 +9,7 @@ namespace HackingProject.Infrastructure.Missions
         public string Id;
         public string Title;
         public string Description;
+        public int RewardCredits;
         public List<MissionObjectiveDefinition> Objectives = new List<MissionObjectiveDefinition>();
     }
 }

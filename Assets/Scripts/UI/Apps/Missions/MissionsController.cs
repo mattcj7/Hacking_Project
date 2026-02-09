@@ -9,18 +9,23 @@ namespace HackingProject.UI.Apps
     {
         private const string TitleName = "mission-title";
         private const string DescriptionName = "mission-description";
+        private const string RewardName = "mission-reward";
         private const string CompleteName = "mission-complete";
         private const string ObjectivesName = "objectives-root";
+        private const string CompletedName = "completed-root";
         private const string ObjectiveClassName = "mission-objective";
         private const string ObjectiveCompleteClassName = "mission-objective-complete";
+        private const string CompletedEntryClassName = "mission-completed-entry";
 
         private readonly VisualElement _root;
         private readonly MissionService _missionService;
         private readonly EventBus _eventBus;
         private readonly Label _titleLabel;
         private readonly Label _descriptionLabel;
+        private readonly Label _rewardLabel;
         private readonly Label _completeLabel;
         private readonly VisualElement _objectivesRoot;
+        private readonly VisualElement _completedRoot;
         private IDisposable _startedSubscription;
         private IDisposable _objectiveSubscription;
         private IDisposable _completedSubscription;
@@ -33,8 +38,10 @@ namespace HackingProject.UI.Apps
             _eventBus = eventBus;
             _titleLabel = root.Q<Label>(TitleName);
             _descriptionLabel = root.Q<Label>(DescriptionName);
+            _rewardLabel = root.Q<Label>(RewardName);
             _completeLabel = root.Q<Label>(CompleteName);
             _objectivesRoot = root.Q<VisualElement>(ObjectivesName);
+            _completedRoot = root.Q<VisualElement>(CompletedName);
         }
 
         public void Initialize()
@@ -71,8 +78,10 @@ namespace HackingProject.UI.Apps
                     _descriptionLabel.text = string.Empty;
                 }
 
+                UpdateRewardLabel(null);
                 SetCompletedVisible(false);
                 _objectivesRoot?.Clear();
+                UpdateCompletedList();
                 return;
             }
 
@@ -87,9 +96,11 @@ namespace HackingProject.UI.Apps
                 _descriptionLabel.text = mission.Description ?? string.Empty;
             }
 
+            UpdateRewardLabel(mission);
             SetCompletedVisible(_missionService.IsActiveMissionCompleted);
             if (_objectivesRoot == null)
             {
+                UpdateCompletedList();
                 return;
             }
 
@@ -98,6 +109,7 @@ namespace HackingProject.UI.Apps
             if (objectives == null || objectives.Count == 0)
             {
                 _objectivesRoot.Add(new Label("No objectives."));
+                UpdateCompletedList();
                 return;
             }
 
@@ -115,6 +127,8 @@ namespace HackingProject.UI.Apps
                 label.style.marginBottom = i < objectives.Count - 1 ? 4f : 0f;
                 _objectivesRoot.Add(label);
             }
+
+            UpdateCompletedList();
         }
 
         private static string BuildObjectiveText(MissionObjectiveDefinition objective)
@@ -155,6 +169,57 @@ namespace HackingProject.UI.Apps
             }
 
             _completeLabel.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        private void UpdateRewardLabel(MissionDefinitionSO mission)
+        {
+            if (_rewardLabel == null)
+            {
+                return;
+            }
+
+            if (mission == null || mission.RewardCredits == 0)
+            {
+                _rewardLabel.text = string.Empty;
+                _rewardLabel.style.display = DisplayStyle.None;
+                return;
+            }
+
+            var prefix = _missionService != null && _missionService.IsActiveMissionCompleted ? "Reward Granted" : "Reward";
+            _rewardLabel.text = $"{prefix}: +{mission.RewardCredits} credits";
+            _rewardLabel.style.display = DisplayStyle.Flex;
+        }
+
+        private void UpdateCompletedList()
+        {
+            if (_completedRoot == null || _missionService == null)
+            {
+                return;
+            }
+
+            _completedRoot.Clear();
+            var completed = _missionService.CompletedMissions;
+            if (completed == null || completed.Count == 0)
+            {
+                _completedRoot.Add(new Label("No completed missions."));
+                return;
+            }
+
+            for (var i = 0; i < completed.Count; i++)
+            {
+                var mission = completed[i];
+                if (mission == null)
+                {
+                    continue;
+                }
+
+                var title = string.IsNullOrWhiteSpace(mission.Title) ? mission.name : mission.Title;
+                var rewardText = mission.RewardCredits > 0 ? $" (+{mission.RewardCredits} credits)" : string.Empty;
+                var label = new Label($"{title} — Completed{rewardText}");
+                label.AddToClassList(CompletedEntryClassName);
+                label.style.marginBottom = i < completed.Count - 1 ? 4f : 0f;
+                _completedRoot.Add(label);
+            }
         }
     }
 }

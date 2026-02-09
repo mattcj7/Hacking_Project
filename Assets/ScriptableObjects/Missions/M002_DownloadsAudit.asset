@@ -10,18 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5cc15098c25d4510a7f7e5398de3bd1d, type: 3}
-  m_Name: M001_ReadTheDocs
+  m_Name: M002_DownloadsAudit
   m_EditorClassIdentifier: 
-  Id: M001_ReadTheDocs
-  Title: Read The Docs
-  Description: Learn the basics by exploring docs in the terminal.
-  RewardCredits: 50
+  Id: M002_DownloadsAudit
+  Title: Downloads Audit
+  Description: Inspect the downloads folder and open the todo file.
+  RewardCredits: 75
   Objectives:
   - Type: 0
-    Description: In Terminal, cd docs
+    Description: In Terminal, cd downloads
     Command: cd
-    Path: /home/user/docs
+    Path: /home/user/downloads
   - Type: 0
-    Description: In Terminal, cat readme.txt
-    Command: cat
-    Path: /home/user/docs/readme.txt
+    Description: In Terminal, ls
+    Command: ls
+    Path: 
+  - Type: 1
+    Description: In File Manager, open todo.txt
+    Command: 
+    Path: /home/user/downloads/todo.txt

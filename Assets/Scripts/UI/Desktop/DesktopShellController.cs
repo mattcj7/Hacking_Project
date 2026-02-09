@@ -3,6 +3,7 @@ using HackingProject.Infrastructure.Missions;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
+using HackingProject.Infrastructure.Wallet;
 using HackingProject.UI.Apps;
 using HackingProject.UI.Windows;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace HackingProject.UI.Desktop
     public sealed class DesktopShellController : MonoBehaviour
     {
         private const string ClockLabelName = "clock-label";
+        private const string CreditsLabelName = "credits-label";
         private const string WindowsLayerName = "windows-layer";
         private const string TaskbarAppsName = "taskbar-apps";
         private const string TaskbarAppsClassName = "taskbar-apps";
@@ -28,6 +30,7 @@ namespace HackingProject.UI.Desktop
         [SerializeField] private AppCatalogSO appCatalog;
 
         private Label _clockLabel;
+        private Label _creditsLabel;
         private VisualElement _windowsLayer;
         private VisualElement _taskbarApps;
         private WindowManager _windowManager;
@@ -35,14 +38,17 @@ namespace HackingProject.UI.Desktop
         private AppLauncher _appLauncher;
         private ITimeServiceProvider _timeServiceProvider;
         private IMissionServiceProvider _missionServiceProvider;
+        private IWalletServiceProvider _walletServiceProvider;
         private IVfsProvider _vfsProvider;
         private ISaveGameDataProvider _saveDataProvider;
         private IDisposable _timeSubscription;
         private IDisposable _saveSessionSubscription;
+        private IDisposable _creditsSubscription;
         private bool _loggedMissingTemplate;
         private bool _loggedMissingAppCatalog;
         private bool _loggedMissingTimeService;
         private bool _loggedMissingMissionService;
+        private bool _loggedMissingWalletService;
         private bool _loggedMissingSaveProvider;
         private bool _hasStarted;
         private bool _sessionRestored;
@@ -62,6 +68,12 @@ namespace HackingProject.UI.Desktop
             {
                 Debug.LogWarning($"[DesktopShellController] Clock label '{ClockLabelName}' not found.");
                 return;
+            }
+
+            _creditsLabel = root?.Q<Label>(CreditsLabelName);
+            if (_creditsLabel == null)
+            {
+                Debug.LogWarning($"[DesktopShellController] Credits label '{CreditsLabelName}' not found.");
             }
 
             _windowsLayer = root?.Q<VisualElement>(WindowsLayerName);
@@ -158,6 +170,7 @@ namespace HackingProject.UI.Desktop
 
             TryHookTimeService();
             TryHookMissionService();
+            TryHookWalletService();
             TryHookVfs();
             TryHookSession();
         }
@@ -167,6 +180,7 @@ namespace HackingProject.UI.Desktop
             _hasStarted = true;
             TryHookTimeService();
             TryHookMissionService();
+            TryHookWalletService();
             TryHookVfs();
             TryHookSession();
         }
@@ -177,6 +191,8 @@ namespace HackingProject.UI.Desktop
             _timeSubscription = null;
             _saveSessionSubscription?.Dispose();
             _saveSessionSubscription = null;
+            _creditsSubscription?.Dispose();
+            _creditsSubscription = null;
         }
 
         private void PopulateTaskbar()
@@ -243,6 +259,43 @@ namespace HackingProject.UI.Desktop
             {
                 _appLauncher.SetEventBus(_timeServiceProvider.EventBus);
             }
+        }
+
+        private void TryHookWalletService()
+        {
+            if (_creditsSubscription != null || _creditsLabel == null)
+            {
+                return;
+            }
+
+            if (_walletServiceProvider == null)
+            {
+                _walletServiceProvider = FindWalletServiceProvider();
+            }
+
+            if (_walletServiceProvider == null || _walletServiceProvider.WalletService == null)
+            {
+                if (_hasStarted && !_loggedMissingWalletService)
+                {
+                    Debug.LogWarning("[DesktopShellController] WalletService provider not found.");
+                    _loggedMissingWalletService = true;
+                }
+
+                return;
+            }
+
+            if (_timeServiceProvider == null)
+            {
+                _timeServiceProvider = FindTimeServiceProvider();
+            }
+
+            if (_timeServiceProvider?.EventBus == null)
+            {
+                return;
+            }
+
+            _creditsSubscription = _timeServiceProvider.EventBus.Subscribe<CreditsChangedEvent>(OnCreditsChanged);
+            UpdateCredits(_walletServiceProvider.WalletService.Credits);
         }
 
         private void TryHookMissionService()
@@ -334,9 +387,24 @@ namespace HackingProject.UI.Desktop
             UpdateClock(evt.CurrentTime);
         }
 
+        private void OnCreditsChanged(CreditsChangedEvent evt)
+        {
+            UpdateCredits(evt.CurrentCredits);
+        }
+
         private void UpdateClock(DateTime time)
         {
             _clockLabel.text = TimeService.FormatTime(time);
+        }
+
+        private void UpdateCredits(int credits)
+        {
+            if (_creditsLabel == null)
+            {
+                return;
+            }
+
+            _creditsLabel.text = $"Credits: {credits}";
         }
 
         private static ITimeServiceProvider FindTimeServiceProvider()
@@ -373,6 +441,20 @@ namespace HackingProject.UI.Desktop
             for (var i = 0; i < behaviours.Length; i++)
             {
                 if (behaviours[i] is ISaveGameDataProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
+        }
+
+        private static IWalletServiceProvider FindWalletServiceProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IWalletServiceProvider provider)
                 {
                     return provider;
                 }

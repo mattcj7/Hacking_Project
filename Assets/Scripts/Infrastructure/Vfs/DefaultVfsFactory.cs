@@ -12,6 +12,7 @@ namespace HackingProject.Infrastructure.Vfs
 
             docs.AddFile("readme.txt", "Welcome to HackingOS.");
             docs.AddFile("todo.txt", "- Learn the terminal\n- Organize files");
+            downloads.AddFile("todo.txt", "Audit the downloads folder.");
             downloads.AddFile("installer.log", "Download complete.");
             user.AddFile("notes.txt", "Remember to check new messages.");
 
