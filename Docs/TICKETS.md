@@ -1,43 +1,29 @@
 ﻿## Current Ticket
 
-## Ticket 0016C - Fix window resize/drag interaction (no snapping, per-window, clamp onscreen)
+## Ticket 0016C - Fix window layout + clamp (absolute positioning, no multi-window shifts, no snap-left)
 
-**Goal:**  
-Fix UI Toolkit window interactions:
-- Resize handle works (bottom-right)
-- Resizing does NOT trigger titlebar dragging or snap windows
-- Drag affects only the active window
-- Clamp windows so the titlebar can’t be lost off-screen
-
-**Background / Issue (repro):**
-- Resize handle is visible but dragging it does nothing
-- On release, window snaps to the left edge / toggles positions
-- With two windows open, interacting with resize on one can move the other or push it above the game view
+**Goal:**
+Fix window behavior so:
+- Clicking/focusing a window doesn’t cause other windows to shift
+- Resizing doesn’t move other windows
+- Window doesn’t snap to left when resized wider than desktop
+- Windows remain recoverable (title bar always reachable)
 
 **Acceptance criteria:**
-- [ ] Resize handle captures pointer and receives move events (PointerCapture)
-- [ ] Resize handler stops event propagation so titlebar drag never runs:
-  - [ ] StopImmediatePropagation + StopPropagation on down/move/up
-- [ ] Resizing changes only `style.width` / `style.height` (min 320x200) and does not modify left/top
-- [ ] Drag handler ignores input while window is resizing
-- [ ] No shared/static drag/resize state across windows
-- [ ] After drag end (and after restore), clamp window position inside desktop bounds:
-  - [ ] Keep titlebar reachable (top >= 0; left within bounds)
-- [ ] Unity compiles with 0 errors and behavior verified with two windows open
+- [ ] Window root is forced to `position: absolute` (code and/or USS)
+- [ ] Resize handle is positioned/sized (bottom-right, clickable)
+- [ ] Clamp logic allows windows wider than desktop by keeping a minimum visible portion (does not force left=0)
+- [ ] Clamp uses `_windowsLayer` bounds (not parent) and runs after layout (ExecuteLater(0))
+- [ ] Verified with 2 windows open: focusing one does not shift the other; resizing one does not move the other
+- [ ] Update `Docs/ADR.md` with ADR-0016C and add ticket to Completed section when done
 
-**Files allowed to edit:**
-- `Assets/Scripts/UI/Desktop/**` (WindowView/WindowManager interactions)
-- `Assets/UI/**` (window template UXML/USS if needed)
+**Files allowed:**
+- `Assets/Scripts/UI/Windows/WindowView.cs`
+- `Assets/Scripts/UI/Windows/WindowManager.cs`
+- `Assets/UI/Windows/**` (template USS/UXML if needed)
 - `Docs/ADR.md`
 - `Docs/TICKETS.md`
 
-**Test plan:**
-1. Play Bootstrap
-2. Open Terminal + Missions
-3. Resize each using handle: width/height changes live
-4. Drag each: only that one moves
-5. Resize does not cause snap/jump or move the other window
-6. Try to drag near edges: titlebar stays recoverable
 
 
 

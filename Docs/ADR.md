@@ -107,6 +107,6 @@ Add entries like:
 
 ## ADR-0016C: Window Instance Safety + Drag/Resize Clamp
 - Context: Window instances must behave independently and remain reachable on screen.
-- Decision: Keep per-window drag/resize state, clone window visuals per instance, isolate resize by capturing pointer on the handle and stopping event propagation, and clamp window positions to desktop bounds on drag/resize end and focus.
+- Decision: Keep per-window drag/resize state, clone window visuals per instance, take windows out of layout flow (absolute positioning), isolate resize by capturing pointer on the handle and stopping event propagation, and clamp window positions with a minimum-visible threshold so titlebars remain reachable.
 - Consequences: Windows remain independently draggable/resizable without getting lost off-screen.
 - Alternatives considered: Shared drag state; no clamping; fixed window positions.

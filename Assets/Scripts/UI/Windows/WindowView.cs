@@ -51,6 +51,9 @@ namespace HackingProject.UI.Windows
             }
 
             var root = template.CloneTree();
+            root.style.position = UnityEngine.UIElements.Position.Absolute;
+            root.style.flexGrow = 0f;
+            root.style.flexShrink = 0f;
             var titleBar = root.Q<VisualElement>(TitleBarName);
             var titleLabel = root.Q<Label>(TitleLabelName);
             var closeButton = root.Q<Button>(CloseButtonName);

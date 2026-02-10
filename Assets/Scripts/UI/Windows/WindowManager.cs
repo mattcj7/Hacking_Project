@@ -53,7 +53,7 @@ namespace HackingProject.UI.Windows
             _windows.Add(view);
             _windowsLayer.Add(view.Root);
             WireWindow(view);
-            _windowsLayer.schedule.Execute(() => ClampWindowToBounds(view));
+            _windowsLayer.schedule.Execute(() => ClampWindowToBounds(view)).ExecuteLater(0);
         }
 
         public void BringToFront(WindowView view)
@@ -158,9 +158,8 @@ namespace HackingProject.UI.Windows
                 return;
             }
 
-            var boundsElement = _windowsLayer.parent ?? _windowsLayer;
-            var boundsWidth = boundsElement.resolvedStyle.width;
-            var boundsHeight = boundsElement.resolvedStyle.height;
+            var boundsWidth = _windowsLayer.resolvedStyle.width;
+            var boundsHeight = _windowsLayer.resolvedStyle.height;
             if (boundsWidth <= 0f || boundsHeight <= 0f)
             {
                 return;
@@ -179,10 +178,27 @@ namespace HackingProject.UI.Windows
                 titleBarHeight = 32f;
             }
 
-            var maxLeft = Mathf.Max(0f, boundsWidth - Mathf.Min(windowWidth, boundsWidth));
-            var maxTop = Mathf.Max(0f, boundsHeight - Mathf.Min(titleBarHeight, boundsHeight));
-            var clampedLeft = Mathf.Clamp(view.Position.x, 0f, maxLeft);
-            var clampedTop = Mathf.Clamp(view.Position.y, 0f, maxTop);
+            const float MinVisibleX = 80f;
+            var minLeft = -windowWidth + MinVisibleX;
+            var maxLeft = boundsWidth - MinVisibleX;
+            if (maxLeft < minLeft)
+            {
+                var midpoint = (minLeft + maxLeft) * 0.5f;
+                minLeft = midpoint;
+                maxLeft = midpoint;
+            }
+
+            var minTop = -windowHeight + titleBarHeight;
+            var maxTop = boundsHeight - titleBarHeight;
+            if (maxTop < minTop)
+            {
+                var midpoint = (minTop + maxTop) * 0.5f;
+                minTop = midpoint;
+                maxTop = midpoint;
+            }
+
+            var clampedLeft = Mathf.Clamp(view.Position.x, minLeft, maxLeft);
+            var clampedTop = Mathf.Clamp(view.Position.y, minTop, maxTop);
 
             if (Mathf.Abs(clampedLeft - view.Position.x) > 0.1f || Mathf.Abs(clampedTop - view.Position.y) > 0.1f)
             {
