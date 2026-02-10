@@ -110,3 +110,27 @@ Add entries like:
 - Decision: Keep per-window drag/resize state, clone window visuals per instance, take windows out of layout flow (absolute positioning), isolate resize by capturing pointer on the handle and stopping event propagation, and clamp window positions with a minimum-visible threshold so titlebars remain reachable.
 - Consequences: Windows remain independently draggable/resizable without getting lost off-screen.
 - Alternatives considered: Shared drag state; no clamping; fixed window positions.
+
+## ADR-0016D: Root-Captured Resize Events
+- Context: Resize handle pointer events can miss moves/ups when the cursor leaves the tiny handle during drag.
+- Decision: Start resize on the handle but capture pointer on the window root and listen for move/up there to ensure reliable resizing.
+- Consequences: Resizing remains smooth even when the pointer leaves the handle area.
+- Alternatives considered: Handle-only events; global input polling.
+
+## ADR-0016E: Resize Hot Zone + Hover Highlight
+- Context: Resizing can feel finicky when the handle is small or hard to target.
+- Decision: Add an 18px bottom-right hot zone that highlights the handle on hover and allows resize start from the root while logging debug start/end in Editor/Development builds.
+- Consequences: Easier resize targeting with clear feedback and traceable resize sessions during development.
+- Alternatives considered: Larger handle only; no hover feedback; always-on logs.
+
+## ADR-0016F: Clear Right/Bottom Constraints for Resizing
+- Context: Window roots can inherit right/bottom constraints that prevent width/height changes from taking effect.
+- Decision: Explicitly clear right/bottom to `auto` on creation and position updates so resizing applies consistently.
+- Consequences: Resizing honors explicit width/height without layout constraints overriding.
+- Alternatives considered: Editing USS constraints only; forcing layout rebuilds.
+
+## ADR-0016G: Window Frame as Resize Target
+- Context: Resizing the template root does not always update the visible window frame.
+- Decision: Introduce a `window-frame` element and apply size changes to that frame (mirrored to the root for input hit-testing).
+- Consequences: Visual resizing matches the computed size updates.
+- Alternatives considered: Only resizing the root; USS changes alone.

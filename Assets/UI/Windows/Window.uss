@@ -1,5 +1,8 @@
 .window-root {
   position: absolute;
+}
+
+.window-frame {
   width: 420px;
   height: 280px;
   flex-direction: column;
@@ -37,14 +40,20 @@
 }
 
 .window-resize-handle {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  background-color: #1a2330;
-  border-top-width: 1px;
-  border-left-width: 1px;
-  border-top-color: #2a3644;
-  border-left-color: #2a3644;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 18px;
+    height: 18px;
+    background-color: #1a2330;
+    border-top-width: 1px;
+    border-left-width: 1px;
+    border-top-color: #2a3644;
+    border-left-color: #2a3644;
+}
+
+.window-resize-handle.resize-hot {
+    background-color: #243142;
+    border-top-color: #3a4a5c;
+    border-left-color: #3a4a5c;
 }

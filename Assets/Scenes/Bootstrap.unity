@@ -163,6 +163,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2fac3faac53424f996379138e078e20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  missionCatalog: {fileID: 0}
 --- !u!1 &210525794
 GameObject:
   m_ObjectHideFlags: 0
@@ -194,7 +195,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: HackingProject.UI::HackingProject.UI.Desktop.DesktopShellController
   windowTemplate: {fileID: 9197481963319205126, guid: 28254797151a492080c98a10dc18b487, type: 3}
-  appCatalog: {fileID: 0}
+  appCatalog: {fileID: 11400000, guid: 0dbcabd033c94c12a199602895d49fbb, type: 2}
 --- !u!114 &210525796
 MonoBehaviour:
   m_ObjectHideFlags: 0

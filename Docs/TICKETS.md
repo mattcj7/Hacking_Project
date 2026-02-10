@@ -1,28 +1,44 @@
 ﻿## Current Ticket
 
-## Ticket 0016C - Fix window layout + clamp (absolute positioning, no multi-window shifts, no snap-left)
+## Ticket 0016G - Window resizing applies visually (resize the window frame element)
 
-**Goal:**
-Fix window behavior so:
-- Clicking/focusing a window doesn’t cause other windows to shift
-- Resizing doesn’t move other windows
-- Window doesn’t snap to left when resized wider than desktop
-- Windows remain recoverable (title bar always reachable)
+**Goal:**  
+Fix window resizing where resize math/logs run but the window does not visually change size.
+
+**Background / Issue:**  
+- Resize start/end logs show size changing, but the window’s visible frame does not resize.
+- Indicates width/height are being applied to an element that is not the visible window frame.
 
 **Acceptance criteria:**
-- [ ] Window root is forced to `position: absolute` (code and/or USS)
-- [ ] Resize handle is positioned/sized (bottom-right, clickable)
-- [ ] Clamp logic allows windows wider than desktop by keeping a minimum visible portion (does not force left=0)
-- [ ] Clamp uses `_windowsLayer` bounds (not parent) and runs after layout (ExecuteLater(0))
-- [ ] Verified with 2 windows open: focusing one does not shift the other; resizing one does not move the other
-- [ ] Update `Docs/ADR.md` with ADR-0016C and add ticket to Completed section when done
+- [ ] Update `Assets/UI/Windows/Window.uxml` to include an explicit frame element:
+  - [ ] Wrap all window visuals (title bar, content, resize handle) in a container named `window-frame`
+- [ ] Update `WindowView` to store `Frame` (the resizable target):
+  - [ ] `public VisualElement Frame { get; }`
+  - [ ] `Create()` queries `window-frame` and throws if missing
+- [ ] Resizing updates `Frame.style.width` and `Frame.style.height` (min size enforced)
+  - [ ] Optionally also set Root width/height to match Frame for consistency
+- [ ] Dragging continues to move the window using Root left/top
+- [ ] ClampWindowToBounds uses Frame size (or Root if Frame missing) when clamping
+- [ ] Add a temporary Editor-only debug log at resize end:
+  - computed size + Frame.resolvedStyle.width/height (to confirm it applied)
+- [ ] No new USS warnings (no z-index, no unsupported properties)
+- [ ] Append ADR-0016G to Docs/ADR.md and update Docs/TICKETS.md completed section when done
+- [ ] Verified with 2 windows open: both visibly resize
 
 **Files allowed:**
+- `Assets/UI/Windows/Window.uxml`
+- `Assets/UI/Windows/Window.uss` (only if needed)
 - `Assets/Scripts/UI/Windows/WindowView.cs`
 - `Assets/Scripts/UI/Windows/WindowManager.cs`
-- `Assets/UI/Windows/**` (template USS/UXML if needed)
 - `Docs/ADR.md`
 - `Docs/TICKETS.md`
+
+**Test plan:**
+1. Play Bootstrap
+2. Open Terminal + File Manager
+3. Resize each window; confirm visible resizing
+4. Confirm logs show Frame.resolvedStyle matches computed size
+5. Confirm Console has 0 warnings/errors
 
 
 
@@ -53,3 +69,5 @@ Fix window behavior so:
 - **0016A** - Missions window: fix overlapping text + add scrolling + consistent styling
 - **0016B** - Toast notifications + mission progression UI + window resizing
 - **0016C** - Window instance safety + drag/resize clamp
+- **0016D** - Resize reliability via root pointer capture
+- **0016E** - Resize hot zone + hover highlight + debug logs

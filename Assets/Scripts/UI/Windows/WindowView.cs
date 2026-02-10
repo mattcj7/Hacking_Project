@@ -10,6 +10,7 @@ namespace HackingProject.UI.Windows
         private const string TitleLabelName = "title-label";
         private const string CloseButtonName = "close-button";
         private const string ContentName = "content";
+        private const string FrameName = "window-frame";
         private const string ResizeHandleName = "resize-handle";
         private const float MinWidth = 320f;
         private const float MinHeight = 200f;
@@ -22,11 +23,13 @@ namespace HackingProject.UI.Windows
         private int _resizePointerId = -1;
         private Vector2 _resizeStartPointer;
         private Vector2 _resizeStartSize;
+        private Vector2 _lastResizeSize;
         private Vector2 _position;
 
-        public WindowView(VisualElement root, VisualElement titleBar, Label titleLabel, Button closeButton, VisualElement contentRoot, VisualElement resizeHandle)
+        public WindowView(VisualElement root, VisualElement frame, VisualElement titleBar, Label titleLabel, Button closeButton, VisualElement contentRoot, VisualElement resizeHandle)
         {
             Root = root ?? throw new ArgumentNullException(nameof(root));
+            Frame = frame ?? throw new ArgumentNullException(nameof(frame));
             TitleBar = titleBar ?? throw new ArgumentNullException(nameof(titleBar));
             TitleLabel = titleLabel ?? throw new ArgumentNullException(nameof(titleLabel));
             CloseButton = closeButton ?? throw new ArgumentNullException(nameof(closeButton));
@@ -35,6 +38,7 @@ namespace HackingProject.UI.Windows
         }
 
         public VisualElement Root { get; }
+        public VisualElement Frame { get; }
         public Label TitleLabel { get; }
         public Button CloseButton { get; }
         public VisualElement TitleBar { get; }
@@ -42,6 +46,7 @@ namespace HackingProject.UI.Windows
         public VisualElement ResizeHandle { get; }
         public Vector2 Position => _position;
         public bool IsResizing => _isResizing;
+        public Vector2 LastResizeSize => _lastResizeSize;
 
         public static WindowView Create(VisualTreeAsset template)
         {
@@ -54,19 +59,23 @@ namespace HackingProject.UI.Windows
             root.style.position = UnityEngine.UIElements.Position.Absolute;
             root.style.flexGrow = 0f;
             root.style.flexShrink = 0f;
+            root.style.right = new StyleLength(StyleKeyword.Auto);
+            root.style.bottom = new StyleLength(StyleKeyword.Auto);
+            var frame = root.Q<VisualElement>(FrameName);
             var titleBar = root.Q<VisualElement>(TitleBarName);
             var titleLabel = root.Q<Label>(TitleLabelName);
             var closeButton = root.Q<Button>(CloseButtonName);
             var content = root.Q<VisualElement>(ContentName);
             var resizeHandle = root.Q<VisualElement>(ResizeHandleName);
 
-            if (titleBar == null || titleLabel == null || closeButton == null || content == null || resizeHandle == null)
+            if (frame == null || titleBar == null || titleLabel == null || closeButton == null || content == null || resizeHandle == null)
             {
                 throw new InvalidOperationException("[WindowView] Window template is missing required elements.");
             }
 
             resizeHandle.pickingMode = PickingMode.Position;
-            return new WindowView(root, titleBar, titleLabel, closeButton, content, resizeHandle);
+            resizeHandle.BringToFront();
+            return new WindowView(root, frame, titleBar, titleLabel, closeButton, content, resizeHandle);
         }
 
         public void SetTitle(string title)
@@ -79,6 +88,8 @@ namespace HackingProject.UI.Windows
             _position = position;
             Root.style.left = position.x;
             Root.style.top = position.y;
+            Root.style.right = new StyleLength(StyleKeyword.Auto);
+            Root.style.bottom = new StyleLength(StyleKeyword.Auto);
         }
 
         public void BeginDrag(Vector2 pointerPosition, int pointerId)
@@ -142,7 +153,16 @@ namespace HackingProject.UI.Windows
             _isResizing = true;
             _resizePointerId = pointerId;
             _resizeStartPointer = pointerPosition;
-            _resizeStartSize = new Vector2(Root.resolvedStyle.width, Root.resolvedStyle.height);
+            var startWidth = Frame.resolvedStyle.width;
+            var startHeight = Frame.resolvedStyle.height;
+            if (startWidth <= 0f || startHeight <= 0f)
+            {
+                startWidth = Frame.layout.width;
+                startHeight = Frame.layout.height;
+            }
+
+            _resizeStartSize = new Vector2(startWidth, startHeight);
+            _lastResizeSize = _resizeStartSize;
         }
 
         public void UpdateResize(Vector2 pointerPosition, int pointerId)
@@ -155,8 +175,11 @@ namespace HackingProject.UI.Windows
             var delta = pointerPosition - _resizeStartPointer;
             var width = Mathf.Max(MinWidth, _resizeStartSize.x + delta.x);
             var height = Mathf.Max(MinHeight, _resizeStartSize.y + delta.y);
+            Frame.style.width = width;
+            Frame.style.height = height;
             Root.style.width = width;
             Root.style.height = height;
+            _lastResizeSize = new Vector2(width, height);
         }
 
         public void EndResize(int pointerId)

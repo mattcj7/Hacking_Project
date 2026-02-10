@@ -7,6 +7,7 @@ namespace HackingProject.UI.Windows
 {
     public sealed class WindowManager
     {
+        private const float ResizeHotZone = 18f;
         private readonly List<WindowView> _windows = new List<WindowView>();
         private readonly VisualElement _windowsLayer;
         private readonly VisualTreeAsset _windowTemplate;
@@ -86,7 +87,75 @@ namespace HackingProject.UI.Windows
 
         private void WireWindow(WindowView view)
         {
+            var isOverHotZone = false;
+            bool IsOverResizeHotZone(Vector2 localPosition)
+            {
+                var width = view.Frame.resolvedStyle.width;
+                var height = view.Frame.resolvedStyle.height;
+                if (width <= 0f || height <= 0f)
+                {
+                    width = view.Frame.layout.width;
+                    height = view.Frame.layout.height;
+                    if (width <= 0f || height <= 0f)
+                    {
+                        return false;
+                    }
+                }
+
+                return localPosition.x >= width - ResizeHotZone && localPosition.y >= height - ResizeHotZone;
+            }
+
             view.Root.RegisterCallback<PointerDownEvent>(_ => BringToFront(view));
+            view.Root.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (view.IsResizing)
+                {
+                    return;
+                }
+
+                var over = IsOverResizeHotZone(evt.localPosition);
+                if (over == isOverHotZone)
+                {
+                    return;
+                }
+
+                isOverHotZone = over;
+                view.ResizeHandle.EnableInClassList("resize-hot", over);
+            });
+            view.Root.RegisterCallback<PointerLeaveEvent>(_ =>
+            {
+                if (!isOverHotZone)
+                {
+                    return;
+                }
+
+                isOverHotZone = false;
+                view.ResizeHandle.EnableInClassList("resize-hot", false);
+            });
+            view.Root.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (view.IsResizing)
+                {
+                    return;
+                }
+
+                var over = IsOverResizeHotZone(evt.localPosition);
+                if (!over)
+                {
+                    return;
+                }
+
+                evt.StopImmediatePropagation();
+                evt.StopPropagation();
+
+                BringToFront(view);
+                view.BeginResize(evt.position, evt.pointerId);
+                view.Root.CapturePointer(evt.pointerId);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                var startSize = new Vector2(view.Frame.resolvedStyle.width, view.Frame.resolvedStyle.height);
+                Debug.Log($"[WindowManager] Resize start '{view.TitleLabel.text}' pointer {evt.pointerId} size {startSize}.");
+#endif
+            });
             view.TitleBar.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (view.IsResizing)
@@ -127,28 +196,53 @@ namespace HackingProject.UI.Windows
 
                 BringToFront(view);
                 view.BeginResize(evt.position, evt.pointerId);
-                view.ResizeHandle.CapturePointer(evt.pointerId);
+                view.Root.CapturePointer(evt.pointerId);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                var startSize = new Vector2(view.Frame.resolvedStyle.width, view.Frame.resolvedStyle.height);
+                Debug.Log($"[WindowManager] Resize start '{view.TitleLabel.text}' pointer {evt.pointerId} size {startSize}.");
+#endif
             });
-            view.ResizeHandle.RegisterCallback<PointerMoveEvent>(evt =>
+            view.Root.RegisterCallback<PointerMoveEvent>(evt =>
             {
+                if (!view.IsResizing)
+                {
+                    return;
+                }
+
                 evt.StopImmediatePropagation();
                 evt.StopPropagation();
                 view.UpdateResize(evt.position, evt.pointerId);
             });
-            view.ResizeHandle.RegisterCallback<PointerUpEvent>(evt =>
+            view.Root.RegisterCallback<PointerUpEvent>(evt =>
             {
+                if (!view.IsResizing)
+                {
+                    return;
+                }
+
                 evt.StopImmediatePropagation();
                 evt.StopPropagation();
 
                 view.EndResize(evt.pointerId);
-                if (view.ResizeHandle.HasPointerCapture(evt.pointerId))
+                if (view.Root.HasPointerCapture(evt.pointerId))
                 {
-                    view.ResizeHandle.ReleasePointer(evt.pointerId);
+                    view.Root.ReleasePointer(evt.pointerId);
                 }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                var computedSize = view.LastResizeSize;
+                var resolvedSize = new Vector2(view.Frame.resolvedStyle.width, view.Frame.resolvedStyle.height);
+                Debug.Log($"[WindowManager] Resize end '{view.TitleLabel.text}' pointer {evt.pointerId} computed {computedSize} resolved {resolvedSize}.");
+#endif
                 ClampWindowToBounds(view);
             });
-            view.ResizeHandle.RegisterCallback<PointerCaptureOutEvent>(_ => view.CancelResize());
+            view.Root.RegisterCallback<PointerCaptureOutEvent>(_ =>
+            {
+                if (view.IsResizing)
+                {
+                    view.CancelResize();
+                }
+            });
         }
 
         private void ClampWindowToBounds(WindowView view)
@@ -165,11 +259,16 @@ namespace HackingProject.UI.Windows
                 return;
             }
 
-            var windowWidth = view.Root.resolvedStyle.width;
-            var windowHeight = view.Root.resolvedStyle.height;
+            var windowWidth = view.Frame.resolvedStyle.width;
+            var windowHeight = view.Frame.resolvedStyle.height;
             if (windowWidth <= 0f || windowHeight <= 0f)
             {
-                return;
+                windowWidth = view.Frame.layout.width;
+                windowHeight = view.Frame.layout.height;
+                if (windowWidth <= 0f || windowHeight <= 0f)
+                {
+                    return;
+                }
             }
 
             var titleBarHeight = view.TitleBar.resolvedStyle.height;
