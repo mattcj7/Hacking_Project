@@ -218,7 +218,7 @@ namespace HackingProject.UI.Apps
                 var root = app.ViewTemplate.CloneTree();
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
-                var controller = new FileManagerController(root, _vfs, _sessionData, _eventBus);
+                var controller = new FileManagerController(root, _vfs, _sessionData, _eventBus, _installService);
                 var startPath = _sessionData != null && !string.IsNullOrWhiteSpace(_sessionData.FileManagerPath)
                     ? _sessionData.FileManagerPath
                     : FileManagerStartPath;
@@ -236,7 +236,7 @@ namespace HackingProject.UI.Apps
                 var root = app.ViewTemplate.CloneTree();
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
-                var controller = new TerminalController(root, _vfs, _sessionData, _eventBus);
+                var controller = new TerminalController(root, _vfs, _sessionData, _eventBus, _installService);
                 controller.Initialize();
                 return true;
             }

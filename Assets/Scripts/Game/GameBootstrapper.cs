@@ -91,7 +91,7 @@ namespace HackingProject.Game
 
             _walletService = new WalletService(_eventBus, _saveData?.Credits ?? 0);
             _creditsSubscription = _eventBus.Subscribe<CreditsChangedEvent>(OnCreditsChanged);
-            _storeService = new StoreService(_eventBus, _walletService, _saveData, _notificationService);
+            _storeService = new StoreService(_eventBus, _walletService, _saveData, _notificationService, _vfs);
             _installService = new InstallService(_eventBus, _saveData);
             _missionService = new MissionService(_eventBus, _walletService);
             if (missionCatalog != null && missionCatalog.Missions != null)

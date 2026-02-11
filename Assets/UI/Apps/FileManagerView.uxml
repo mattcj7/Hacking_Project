@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-  <ui:Style src="Assets/UI/Theme/HackingOSTheme.uss" />
+  <ui:Style src="project://database/Assets/UI/Theme/HackingOSTheme.uss" />
   <ui:Style src="FileManagerView.uss" />
   <ui:VisualElement class="filemanager-root">
     <ui:VisualElement class="filemanager-header">
@@ -7,5 +7,14 @@
       <ui:Label name="path-label" text="/" class="filemanager-path" />
     </ui:VisualElement>
     <ui:ScrollView name="entries" class="filemanager-entries" />
+    <ui:VisualElement name="installer-dialog" class="filemanager-dialog hidden">
+      <ui:VisualElement class="filemanager-dialog-panel">
+        <ui:Label name="installer-dialog-label" text="Install app?" class="filemanager-dialog-label" />
+        <ui:VisualElement class="filemanager-dialog-actions">
+          <ui:Button name="installer-confirm" text="Install" class="filemanager-dialog-button" />
+          <ui:Button name="installer-cancel" text="Cancel" class="filemanager-dialog-button" />
+        </ui:VisualElement>
+      </ui:VisualElement>
+    </ui:VisualElement>
   </ui:VisualElement>
 </ui:UXML>

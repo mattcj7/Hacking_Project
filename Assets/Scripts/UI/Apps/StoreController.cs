@@ -130,7 +130,7 @@ namespace HackingProject.UI.Apps
 
             if (_storeService != null && _storeService.IsOwned(item.AppIdToInstall))
             {
-                return "Owned";
+                return "Downloaded";
             }
 
             return "Available";
@@ -145,7 +145,7 @@ namespace HackingProject.UI.Apps
 
             if (_storeService != null && _storeService.IsOwned(item.AppIdToInstall))
             {
-                return "Install";
+                return "Downloaded";
             }
 
             return "Buy";
@@ -165,7 +165,7 @@ namespace HackingProject.UI.Apps
 
             if (_storeService.IsOwned(item.AppIdToInstall))
             {
-                return true;
+                return false;
             }
 
             return _storeService.CanPurchase(item);
@@ -185,7 +185,6 @@ namespace HackingProject.UI.Apps
 
             if (_storeService.IsOwned(item.AppIdToInstall))
             {
-                _installService.Install(item.AppIdToInstall);
                 Refresh();
                 return;
             }

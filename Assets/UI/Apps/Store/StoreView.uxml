@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-  <ui:Style src="Assets/UI/Theme/HackingOSTheme.uss" />
+  <ui:Style src="project://database/Assets/UI/Theme/HackingOSTheme.uss" />
   <ui:Style src="StoreView.uss" />
   <ui:VisualElement class="store-root">
     <ui:Label text="Store" class="store-title" />

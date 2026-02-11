@@ -3,6 +3,7 @@ using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Terminal;
 using HackingProject.Infrastructure.Vfs;
+using HackingProject.Systems.Store;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -23,9 +24,12 @@ namespace HackingProject.UI.Apps
         private readonly TerminalCommandProcessor _processor;
         private readonly TerminalSession _session;
         private readonly OsSessionData _sessionData;
+        private readonly EventBus _eventBus;
+        private readonly VirtualFileSystem _vfs;
+        private readonly InstallService _installService;
         private bool _inputHandlerRegistered;
 
-        public TerminalController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData, EventBus eventBus)
+        public TerminalController(VisualElement root, VirtualFileSystem vfs, OsSessionData sessionData, EventBus eventBus, InstallService installService)
         {
             if (root == null)
             {
@@ -37,6 +41,9 @@ namespace HackingProject.UI.Apps
                 throw new ArgumentNullException(nameof(vfs));
             }
 
+            _vfs = vfs;
+            _eventBus = eventBus;
+            _installService = installService;
             _output = root.Q<ScrollView>(OutputName);
             _input = root.Q<TextField>(InputName);
             _textInput = _input?.Q<VisualElement>(TextInputName);
@@ -100,7 +107,7 @@ namespace HackingProject.UI.Apps
             }
 
             AppendLine($"{PromptPrefix}{inputText}");
-            var result = _processor.Execute(inputText);
+            var result = ExecuteCommand(inputText);
 
             if (result.ClearOutput && _output != null)
             {
@@ -118,6 +125,20 @@ namespace HackingProject.UI.Apps
                 _input.value = string.Empty;
                 ScheduleFocus();
             }
+        }
+
+        private TerminalCommandResult ExecuteCommand(string input)
+        {
+            if (TerminalCommandParser.TryParse(input, out var command)
+                && string.Equals(command.Name, "install", StringComparison.OrdinalIgnoreCase))
+            {
+                var pathArg = command.Args != null && command.Args.Length > 0 ? command.Args[0] : null;
+                var result = InstallerCommand.Execute(_vfs, _installService, _session.CurrentPath, pathArg, out var resolvedPath);
+                _eventBus?.Publish(new TerminalCommandExecutedEvent(command.Name, command.Args, _session.CurrentPath, resolvedPath));
+                return result;
+            }
+
+            return _processor.Execute(input);
         }
 
         private void AppendLine(string text)

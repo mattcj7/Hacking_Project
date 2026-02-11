@@ -1,46 +1,63 @@
 ﻿## Current Ticket
 
-## Ticket 0017A - Fix Store/Install assembly boundaries (remove UI deps, move to Systems)
+## Ticket 0018 - Installer file pipeline (purchase drops installer into VFS; install via File Manager/Terminal)
 
 **Goal:**  
-Fix compile errors by aligning Store/Install pipeline with ADR-0001 assembly boundaries.
+Make purchases feel like real OS activity:
+- Buying an app creates an installer file in the VFS (e.g., `/home/user/downloads/<appId>.installer`)
+- Installing happens via File Manager (open file) or Terminal (`install <path>`), not directly from Store UI
 
-**Background / Issue:**  
-Store files were created under `Assets/Scripts/Infrastructure/Store/` but reference `HackingProject.UI` and UI types (AppRegistry/AppDefinitionSO/AppId). Infrastructure cannot reference UI, causing CS0234/CS0246 errors.
+**Non-goals:**  
+- No real executable code
+- No sandboxing beyond current fictional model
+- No cryptography beyond existing integrity
 
 **Acceptance criteria:**
-- [ ] Move Store-related runtime code out of Infrastructure into Systems:
-  - [ ] `Assets/Scripts/Systems/Store/**` (or similar Systems folder)
-- [ ] Remove all references to `HackingProject.UI` and UI-only types from Store pipeline:
-  - [ ] Replace `AppId` with `string appId`
-  - [ ] Remove `AppDefinitionSO` from events/services
-  - [ ] Remove `AppRegistry` and `AppPackageDatabaseSO` dependencies from InstallService
-- [ ] Define Store pipeline events in Systems (depends only on Infrastructure IEvent):
-  - [ ] `StorePurchaseCompletedEvent` (itemId, appId, price)
-  - [ ] `AppInstalledEvent` (appId)
-- [ ] InstallService responsibilities:
-  - [ ] Updates `SaveGameData.InstalledAppIds` (idempotent)
-  - [ ] Publishes `AppInstalledEvent(appId)`
-  - [ ] Does NOT directly manipulate UI registries/taskbar
-- [ ] UI integration:
-  - [ ] StoreController (UI) subscribes to `AppInstalledEvent` and refreshes AppRegistry/taskbar via existing UI code path
-  - [ ] Or AppRegistry listens and rebuilds itself when install events fire
-- [ ] Unity compiles with 0 errors and existing tests remain green
+- [ ] Add `InstallerPackage` model:
+  - [ ] Installer file format is a small JSON text payload stored in VFS file contents:
+    - appId, displayName, version (int), pricePaid (optional), createdAt (optional)
+- [ ] Store purchase behavior:
+  - [ ] On successful purchase, write installer file to:
+    - `/home/user/downloads/<appId>.installer`
+  - [ ] If file exists, create a unique name or overwrite safely (deterministic)
+  - [ ] Post notification: “Downloaded installer: <file>”
+- [ ] File Manager integration:
+  - [ ] Double-click/open `.installer` file triggers install prompt:
+    - [ ] “Install <displayName>?” Confirm/Cancel
+  - [ ] Confirm triggers InstallService.Install(appId)
+- [ ] Terminal integration:
+  - [ ] Add `install <path>` command:
+    - [ ] Validates file exists and ends with `.installer`
+    - [ ] Parses payload and calls InstallService.Install(appId)
+    - [ ] Writes terminal output for success/fail
+- [ ] InstallService remains idempotent and persists InstalledAppIds
+- [ ] Store UI:
+  - [ ] After purchase, button becomes “Downloaded” or “Owned” (no direct install)
+- [ ] Tests:
+  - [ ] Purchase creates installer file in VFS with correct payload
+  - [ ] Terminal install from installer path installs app (idempotent)
 - [ ] Docs:
-  - [ ] Append ADR-0017A to `Docs/ADR.md` describing the boundary fix (Systems owns Store logic; UI reacts via events)
-  - [ ] Update `Docs/TICKETS.md` completed sections when finished
+  - [ ] Append ADR-0018 to Docs/ADR.md
+  - [ ] Update Docs/TICKETS.md completed sections when done
 
 **Files allowed:**
-- `Assets/Scripts/Infrastructure/Store/**` (delete/move)
-- `Assets/Scripts/Systems/Store/**` (new)
-- `Assets/Scripts/UI/Apps/Store/**` (wire UI refresh on install event)
+- `Assets/Scripts/Systems/Store/**`
+- `Assets/Scripts/Systems/VFS/**`
+- `Assets/Scripts/UI/Apps/Store/**`
+- `Assets/Scripts/UI/Apps/FileManager/**`
+- `Assets/Scripts/UI/Apps/Terminal/**`
+- `Assets/Tests/EditMode/**`
 - `Docs/ADR.md`
 - `Docs/TICKETS.md`
 
 **Test plan:**
-1. Unity recompiles with 0 errors
-2. Open Store, buy/install an app
-3. Confirm taskbar updates (via UI reaction) and persistence still works
+1. Play Bootstrap
+2. Open Store and buy an app
+3. Open File Manager → Downloads; see `<appId>.installer`
+4. Double-click installer; confirm install; app appears in taskbar
+5. Repeat using Terminal: `install /home/user/downloads/<appId>.installer`
+6. Stop/Start Play: installed app persists
+
 
 
 
@@ -75,3 +92,4 @@ Store files were created under `Assets/Scripts/Infrastructure/Store/` but refere
 - **0016E** - Resize hot zone + hover highlight + debug logs
 - **0017** - Store + Purchase + Install pipeline
 - **0017A** - Store/Install boundary fix (move to Systems, remove UI deps)
+- **0018** - Installer file pipeline (purchase drops installer; install via File Manager/Terminal)

@@ -146,3 +146,9 @@ Add entries like:
 - Decision: Move Store/Install runtime code into Systems, replace AppId usage with string appIds in store data/events, and keep AppRegistry/AppPackageDatabase resolution in the UI layer by reacting to install events.
 - Consequences: Systems remains UI-agnostic while UI updates taskbar/app lists when installs complete.
 - Alternatives considered: Allow Infrastructure to reference UI; keep UI types in Systems.
+
+## ADR-0018: Installer File Pipeline
+- Context: Store installs should feel like OS activity rather than immediate app activation.
+- Decision: On purchase, create a JSON `.installer` file in the VFS downloads folder and trigger installs via File Manager confirm or a Terminal `install` command, with store UI showing downloaded state only.
+- Consequences: Installs are a distinct step, driven by VFS files and command/UI actions, while remaining fully simulated.
+- Alternatives considered: Direct installs from Store UI; skipping installer files entirely.

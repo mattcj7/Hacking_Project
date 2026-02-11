@@ -1,6 +1,7 @@
 using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Notifications;
 using HackingProject.Infrastructure.Save;
+using HackingProject.Infrastructure.Vfs;
 using HackingProject.Infrastructure.Wallet;
 using HackingProject.Systems.Store;
 using NUnit.Framework;
@@ -16,7 +17,8 @@ namespace HackingProject.Tests.EditMode
             var eventBus = new EventBus();
             var wallet = new WalletService(eventBus, 0);
             var saveData = SaveGameData.CreateDefault();
-            var storeService = new StoreService(eventBus, wallet, saveData, new NotificationService(eventBus));
+            var vfs = DefaultVfsFactory.Create();
+            var storeService = new StoreService(eventBus, wallet, saveData, new NotificationService(eventBus), vfs);
             var item = CreateItem("Notes", 10);
 
             var result = storeService.Purchase(item);
@@ -32,7 +34,8 @@ namespace HackingProject.Tests.EditMode
             var eventBus = new EventBus();
             var wallet = new WalletService(eventBus, 50);
             var saveData = SaveGameData.CreateDefault();
-            var storeService = new StoreService(eventBus, wallet, saveData, new NotificationService(eventBus));
+            var vfs = DefaultVfsFactory.Create();
+            var storeService = new StoreService(eventBus, wallet, saveData, new NotificationService(eventBus), vfs);
             var item = CreateItem("Notes", 25);
 
             var result = storeService.Purchase(item);
@@ -61,6 +64,28 @@ namespace HackingProject.Tests.EditMode
             Assert.AreEqual(1, installedCount);
             Assert.AreEqual(1, saveData.InstalledAppIds.Count);
             Assert.IsTrue(saveData.InstalledAppIds.Contains("Notes"));
+        }
+
+        [Test]
+        public void Purchase_CreatesInstallerFile()
+        {
+            var eventBus = new EventBus();
+            var wallet = new WalletService(eventBus, 50);
+            var saveData = SaveGameData.CreateDefault();
+            var vfs = DefaultVfsFactory.Create();
+            var storeService = new StoreService(eventBus, wallet, saveData, new NotificationService(eventBus), vfs);
+            var item = CreateItem("Notes", 25);
+
+            var result = storeService.Purchase(item);
+
+            Assert.IsTrue(result);
+            var node = vfs.Resolve("/home/user/downloads/Notes.installer") as VfsFile;
+            Assert.IsNotNull(node);
+            Assert.IsTrue(InstallerPackage.TryParse(node.Content, out var package));
+            Assert.AreEqual("Notes", package.appId);
+            Assert.AreEqual("Notes", package.displayName);
+            Assert.AreEqual(1, package.version);
+            Assert.AreEqual(25, package.pricePaid);
         }
 
         private static StoreItemDefinitionSO CreateItem(string appId, int price)

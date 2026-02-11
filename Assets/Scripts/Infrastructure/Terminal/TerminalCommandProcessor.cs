@@ -36,7 +36,7 @@ namespace HackingProject.Infrastructure.Terminal
                 case "help":
                     result = new TerminalCommandResult(new[]
                     {
-                        "Commands: help, pwd, ls, cd, cat, clear"
+                        "Commands: help, pwd, ls, cd, cat, clear, install"
                     }, false);
                     break;
                 case "pwd":
