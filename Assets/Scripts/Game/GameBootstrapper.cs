@@ -6,6 +6,7 @@ using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
 using HackingProject.Infrastructure.Wallet;
+using HackingProject.Systems.Save;
 using HackingProject.Systems.Store;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -25,6 +26,8 @@ namespace HackingProject.Game
         private GameStateMachine _stateMachine;
         private SaveService _saveService;
         private SaveGameData _saveData;
+        private SaveMigrationService _saveMigrationService;
+        private AutoSaveService _autoSaveService;
         private MissionService _missionService;
         private NotificationService _notificationService;
         private TimeService _timeService;
@@ -52,6 +55,7 @@ namespace HackingProject.Game
             _stateMachine = new GameStateMachine(_eventBus);
             _timeService = new TimeService(_eventBus);
             _saveService = new SaveService(Application.persistentDataPath);
+            _saveMigrationService = new SaveMigrationService();
             _vfs = DefaultVfsFactory.Create();
             _notificationService = new NotificationService(_eventBus);
             _missionCompletedSubscription = _eventBus.Subscribe<MissionCompletedEvent>(OnMissionCompleted);
@@ -77,8 +81,8 @@ namespace HackingProject.Game
             if (_saveService.TryLoad(out var loaded))
             {
                 _saveData = loaded;
-                EnsureSessionData();
-                EnsureStoreData();
+                var loadedVersion = _saveService.LastLoadVersion <= 0 ? 1 : _saveService.LastLoadVersion;
+                _saveMigrationService.Migrate(_saveData, loadedVersion);
                 _eventBus.Publish(new SaveLoadedEvent(_saveData, _saveService.LastLoadSource));
                 Debug.Log($"[SaveService] Loaded save ({_saveService.LastLoadSource}).");
             }
@@ -93,6 +97,7 @@ namespace HackingProject.Game
             _creditsSubscription = _eventBus.Subscribe<CreditsChangedEvent>(OnCreditsChanged);
             _storeService = new StoreService(_eventBus, _walletService, _saveData, _notificationService, _vfs);
             _installService = new InstallService(_eventBus, _saveData);
+            _autoSaveService = new AutoSaveService(_eventBus, new SaveServiceWriter(_saveService), _saveData);
             _missionService = new MissionService(_eventBus, _walletService);
             if (missionCatalog != null && missionCatalog.Missions != null)
             {
@@ -110,6 +115,7 @@ namespace HackingProject.Game
         {
             _stateMachine.Tick();
             _timeService?.Tick(Time.unscaledDeltaTime);
+            _autoSaveService?.Tick(Time.unscaledDeltaTime);
             HandleSaveInput();
         }
 
@@ -120,6 +126,7 @@ namespace HackingProject.Game
             _missionCompletedSubscription?.Dispose();
             _missionRewardSubscription?.Dispose();
             _missionService?.Dispose();
+            _autoSaveService?.Dispose();
         }
 
         private static void OnStateChanged(StateChangedEvent evt)
@@ -172,6 +179,7 @@ namespace HackingProject.Game
             {
                 _saveService.DeleteAll();
                 _saveData = SaveGameData.CreateDefault();
+                _autoSaveService?.SetSaveData(_saveData);
                 Debug.Log("[SaveService] Cleared save files.");
             }
             catch (Exception ex)

@@ -152,3 +152,9 @@ Add entries like:
 - Decision: On purchase, create a JSON `.installer` file in the VFS downloads folder and trigger installs via File Manager confirm or a Terminal `install` command, with store UI showing downloaded state only.
 - Consequences: Installs are a distinct step, driven by VFS files and command/UI actions, while remaining fully simulated.
 - Alternatives considered: Direct installs from Store UI; skipping installer files entirely.
+
+## ADR-0019: Save Versioning + Migration + Autosave
+- Context: The save format needs forward compatibility and automatic persistence after key events.
+- Decision: Version the save envelope (current v2), add a migration service to fill defaults for new fields, and add an autosave service that debounces event-driven saves.
+- Consequences: Old saves load safely with defaults, and gameplay events persist without manual saves.
+- Alternatives considered: No versioning; manual-only saves; per-frame autosave polling.

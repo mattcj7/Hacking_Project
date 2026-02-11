@@ -1,65 +1,77 @@
 ﻿## Current Ticket
 
-## Ticket 0018 - Installer file pipeline (purchase drops installer into VFS; install via File Manager/Terminal)
+## Ticket 0019 - Save/Load v2 (format versioning + migrations + autosave debounce)
 
 **Goal:**  
-Make purchases feel like real OS activity:
-- Buying an app creates an installer file in the VFS (e.g., `/home/user/downloads/<appId>.installer`)
-- Installing happens via File Manager (open file) or Terminal (`install <path>`), not directly from Store UI
+Make saves future-proof and reduce progress loss by adding:
+- Save format versioning
+- Migration path for older saves
+- Autosave (debounced) on key gameplay events
 
 **Non-goals:**  
-- No real executable code
-- No sandboxing beyond current fictional model
-- No cryptography beyond existing integrity
+- No cloud saves
+- No encryption beyond existing integrity hash
+- No UI save slots menu (later ticket)
 
 **Acceptance criteria:**
-- [ ] Add `InstallerPackage` model:
-  - [ ] Installer file format is a small JSON text payload stored in VFS file contents:
-    - appId, displayName, version (int), pricePaid (optional), createdAt (optional)
-- [ ] Store purchase behavior:
-  - [ ] On successful purchase, write installer file to:
-    - `/home/user/downloads/<appId>.installer`
-  - [ ] If file exists, create a unique name or overwrite safely (deterministic)
-  - [ ] Post notification: “Downloaded installer: <file>”
-- [ ] File Manager integration:
-  - [ ] Double-click/open `.installer` file triggers install prompt:
-    - [ ] “Install <displayName>?” Confirm/Cancel
-  - [ ] Confirm triggers InstallService.Install(appId)
-- [ ] Terminal integration:
-  - [ ] Add `install <path>` command:
-    - [ ] Validates file exists and ends with `.installer`
-    - [ ] Parses payload and calls InstallService.Install(appId)
-    - [ ] Writes terminal output for success/fail
-- [ ] InstallService remains idempotent and persists InstalledAppIds
-- [ ] Store UI:
-  - [ ] After purchase, button becomes “Downloaded” or “Owned” (no direct install)
-- [ ] Tests:
-  - [ ] Purchase creates installer file in VFS with correct payload
-  - [ ] Terminal install from installer path installs app (idempotent)
-- [ ] Docs:
-  - [ ] Append ADR-0018 to Docs/ADR.md
-  - [ ] Update Docs/TICKETS.md completed sections when done
 
-**Files allowed:**
-- `Assets/Scripts/Systems/Store/**`
-- `Assets/Scripts/Systems/VFS/**`
-- `Assets/Scripts/UI/Apps/Store/**`
-- `Assets/Scripts/UI/Apps/FileManager/**`
-- `Assets/Scripts/UI/Apps/Terminal/**`
+### A) Save format versioning
+- [ ] Add a `SaveFormatVersion` integer to the save envelope (preferred) or payload:
+  - [ ] Current version constant: `public const int CurrentSaveVersion = 2;`
+- [ ] On load:
+  - [ ] If version missing (older saves), treat as version 1
+  - [ ] If version > CurrentSaveVersion, fail gracefully with a clear error message
+- [ ] Keep existing atomic write + .bak + SHA-256 integrity behavior intact
+
+### B) Migrations
+- [ ] Introduce a migration pipeline:
+  - [ ] `SaveMigrationService` (plain C#) with:
+    - [ ] `SaveGameData Migrate(SaveGameData data, int fromVersion, int toVersion)`
+  - [ ] Implement at least:
+    - [ ] v1 -> v2 migration (fill defaults for new fields like Credits/InstalledAppIds/OwnedAppIds/OsSessionData if missing)
+- [ ] Ensure migration happens AFTER integrity is verified (if applicable) and BEFORE game systems initialize
+
+### C) Autosave (debounced)
+- [ ] Add an `AutoSaveService` (plain C#) owned by `GameBootstrapper`:
+  - [ ] Subscribes to EventBus and requests saves on:
+    - [ ] `MissionCompletedEvent`
+    - [ ] `MissionRewardGrantedEvent` (credits)
+    - [ ] `StorePurchaseCompletedEvent`
+    - [ ] `AppInstalledEvent`
+    - [ ] (Optional) `SaveSessionCaptureEvent` when window positions change
+  - [ ] Debounce window: e.g. 1.5 seconds (multiple events coalesce into one save)
+  - [ ] Uses existing SaveService to perform the save
+  - [ ] Logs one line per autosave (Editor/Dev only): reason + timestamp
+- [ ] Ensure autosave does not run every frame and does not allocate per frame
+
+### D) Tests
+- [ ] EditMode tests:
+  - [ ] Loading v1 save migrates to v2 with expected defaults
+  - [ ] Autosave debounce: multiple events within debounce triggers exactly one Save call (mock SaveService)
+  - [ ] Autosave triggers on AppInstalledEvent / MissionCompletedEvent
+
+### E) Documentation discipline
+- [ ] Append **ADR-0019** to `Docs/ADR.md` describing:
+  - versioning location (envelope vs payload)
+  - migration strategy
+  - autosave debounce approach
+- [ ] Update `Docs/TICKETS.md` completed section when done
+
+**Files allowed to edit:**
+- `Assets/Scripts/Infrastructure/**` (SaveService / envelope / migrations)
+- `Assets/Scripts/Systems/**` (AutoSaveService if that’s where services live)
+- `Assets/Scripts/Game/**` (Bootstrap wiring)
 - `Assets/Tests/EditMode/**`
 - `Docs/ADR.md`
 - `Docs/TICKETS.md`
 
 **Test plan:**
-1. Play Bootstrap
-2. Open Store and buy an app
-3. Open File Manager → Downloads; see `<appId>.installer`
-4. Double-click installer; confirm install; app appears in taskbar
-5. Repeat using Terminal: `install /home/user/downloads/<appId>.installer`
-6. Stop/Start Play: installed app persists
-
-
-
+1. Run EditMode tests (all green)
+2. Play Bootstrap
+3. Complete a mission and observe autosave log
+4. Buy + download installer, install app: observe autosave log(s) (debounced)
+5. Stop/Start Play: progress persists
+6. Confirm Console has 0 errors/warnings
 
 
 ## Completed - Support/Fix Tickets (non-ADR)
@@ -93,3 +105,4 @@ Make purchases feel like real OS activity:
 - **0017** - Store + Purchase + Install pipeline
 - **0017A** - Store/Install boundary fix (move to Systems, remove UI deps)
 - **0018** - Installer file pipeline (purchase drops installer; install via File Manager/Terminal)
+- **0019** - Save versioning + migration + autosave

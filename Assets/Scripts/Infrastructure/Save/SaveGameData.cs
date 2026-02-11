@@ -6,7 +6,9 @@ namespace HackingProject.Infrastructure.Save
     [Serializable]
     public sealed class SaveGameData
     {
-        public int Version = 1;
+        public const int CurrentVersion = 2;
+
+        public int Version = CurrentVersion;
         public string LastSavedUtcIso;
         public int Credits;
         public OsSessionData OsSession;
@@ -17,7 +19,7 @@ namespace HackingProject.Infrastructure.Save
         {
             return new SaveGameData
             {
-                Version = 1,
+                Version = CurrentVersion,
                 Credits = 0,
                 LastSavedUtcIso = string.Empty,
                 OsSession = new OsSessionData(),

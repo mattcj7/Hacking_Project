@@ -9,6 +9,7 @@ namespace HackingProject.Infrastructure.Save
 {
     public sealed class SaveService
     {
+        public const int CurrentSaveVersion = SaveGameData.CurrentVersion;
         public const string PrimaryFileName = "savegame.json";
         public const string BackupFileName = "savegame.bak.json";
         public const string TempFileName = "savegame.tmp.json";
@@ -32,31 +33,36 @@ namespace HackingProject.Infrastructure.Save
         }
 
         public SaveLoadSource LastLoadSource { get; private set; }
+        public int LastLoadVersion { get; private set; }
 
         public bool TryLoad(out SaveGameData data)
         {
             data = null;
             LastLoadSource = SaveLoadSource.None;
+            LastLoadVersion = 0;
 
             if (!File.Exists(_primaryPath))
             {
                 return false;
             }
 
-            if (TryLoadFromPath(_primaryPath, out data))
+            if (TryLoadFromPath(_primaryPath, out data, out var version))
             {
                 LastLoadSource = SaveLoadSource.Primary;
+                LastLoadVersion = version;
                 return true;
             }
 
-            if (File.Exists(_backupPath) && TryLoadFromPath(_backupPath, out data))
+            if (File.Exists(_backupPath) && TryLoadFromPath(_backupPath, out data, out version))
             {
                 LastLoadSource = SaveLoadSource.Backup;
+                LastLoadVersion = version;
                 return true;
             }
 
             data = null;
             LastLoadSource = SaveLoadSource.None;
+            LastLoadVersion = 0;
             return false;
         }
 
@@ -67,13 +73,13 @@ namespace HackingProject.Infrastructure.Save
                 throw new ArgumentNullException(nameof(data));
             }
 
-            data.Version = data.Version <= 0 ? 1 : data.Version;
+            data.Version = CurrentSaveVersion;
             data.LastSavedUtcIso = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
 
             var payloadJson = JsonUtility.ToJson(data);
             var envelope = new SaveEnvelope
             {
-                Version = 1,
+                Version = CurrentSaveVersion,
                 PayloadJson = payloadJson,
                 PayloadSha256Hex = ComputeSha256Hex(payloadJson)
             };
@@ -92,9 +98,10 @@ namespace HackingProject.Infrastructure.Save
             DeleteFile(_backupPath);
         }
 
-        private bool TryLoadFromPath(string path, out SaveGameData data)
+        private bool TryLoadFromPath(string path, out SaveGameData data, out int version)
         {
             data = null;
+            version = 0;
 
             try
             {
@@ -110,6 +117,8 @@ namespace HackingProject.Infrastructure.Save
                     return false;
                 }
 
+                version = envelope.Version <= 0 ? 1 : envelope.Version;
+
                 var computedHash = ComputeSha256Hex(envelope.PayloadJson);
                 if (!string.Equals(computedHash, envelope.PayloadSha256Hex, StringComparison.OrdinalIgnoreCase))
                 {
@@ -121,6 +130,7 @@ namespace HackingProject.Infrastructure.Save
             }
             catch (Exception)
             {
+                version = 0;
                 return false;
             }
         }
