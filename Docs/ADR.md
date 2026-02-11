@@ -134,3 +134,15 @@ Add entries like:
 - Decision: Introduce a `window-frame` element and apply size changes to that frame (mirrored to the root for input hit-testing).
 - Consequences: Visual resizing matches the computed size updates.
 - Alternatives considered: Only resizing the root; USS changes alone.
+
+## ADR-0017: Store Purchase + Install Pipeline
+- Context: The OS needs a fictional store loop with purchases, installs, and persistence.
+- Decision: Add Store/Install services that mutate save data, publish events, and use a package database to resolve AppDefinition assets. UI surfaces a store list with buy/install actions and notifications.
+- Consequences: New apps can be purchased, installed, and persist across sessions without real-world integration.
+- Alternatives considered: Hard-coded installs; no persistence; direct AppRegistry edits from UI.
+
+## ADR-0017A: Store/Install Boundary Fix (Systems + UI Reaction)
+- Context: Store/Install logic referenced UI types from Infrastructure, breaking assembly boundaries and causing compile errors.
+- Decision: Move Store/Install runtime code into Systems, replace AppId usage with string appIds in store data/events, and keep AppRegistry/AppPackageDatabase resolution in the UI layer by reacting to install events.
+- Consequences: Systems remains UI-agnostic while UI updates taskbar/app lists when installs complete.
+- Alternatives considered: Allow Infrastructure to reference UI; keep UI types in Systems.

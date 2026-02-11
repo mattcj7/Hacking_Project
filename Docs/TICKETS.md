@@ -1,44 +1,46 @@
 ﻿## Current Ticket
 
-## Ticket 0016G - Window resizing applies visually (resize the window frame element)
+## Ticket 0017A - Fix Store/Install assembly boundaries (remove UI deps, move to Systems)
 
 **Goal:**  
-Fix window resizing where resize math/logs run but the window does not visually change size.
+Fix compile errors by aligning Store/Install pipeline with ADR-0001 assembly boundaries.
 
 **Background / Issue:**  
-- Resize start/end logs show size changing, but the window’s visible frame does not resize.
-- Indicates width/height are being applied to an element that is not the visible window frame.
+Store files were created under `Assets/Scripts/Infrastructure/Store/` but reference `HackingProject.UI` and UI types (AppRegistry/AppDefinitionSO/AppId). Infrastructure cannot reference UI, causing CS0234/CS0246 errors.
 
 **Acceptance criteria:**
-- [ ] Update `Assets/UI/Windows/Window.uxml` to include an explicit frame element:
-  - [ ] Wrap all window visuals (title bar, content, resize handle) in a container named `window-frame`
-- [ ] Update `WindowView` to store `Frame` (the resizable target):
-  - [ ] `public VisualElement Frame { get; }`
-  - [ ] `Create()` queries `window-frame` and throws if missing
-- [ ] Resizing updates `Frame.style.width` and `Frame.style.height` (min size enforced)
-  - [ ] Optionally also set Root width/height to match Frame for consistency
-- [ ] Dragging continues to move the window using Root left/top
-- [ ] ClampWindowToBounds uses Frame size (or Root if Frame missing) when clamping
-- [ ] Add a temporary Editor-only debug log at resize end:
-  - computed size + Frame.resolvedStyle.width/height (to confirm it applied)
-- [ ] No new USS warnings (no z-index, no unsupported properties)
-- [ ] Append ADR-0016G to Docs/ADR.md and update Docs/TICKETS.md completed section when done
-- [ ] Verified with 2 windows open: both visibly resize
+- [ ] Move Store-related runtime code out of Infrastructure into Systems:
+  - [ ] `Assets/Scripts/Systems/Store/**` (or similar Systems folder)
+- [ ] Remove all references to `HackingProject.UI` and UI-only types from Store pipeline:
+  - [ ] Replace `AppId` with `string appId`
+  - [ ] Remove `AppDefinitionSO` from events/services
+  - [ ] Remove `AppRegistry` and `AppPackageDatabaseSO` dependencies from InstallService
+- [ ] Define Store pipeline events in Systems (depends only on Infrastructure IEvent):
+  - [ ] `StorePurchaseCompletedEvent` (itemId, appId, price)
+  - [ ] `AppInstalledEvent` (appId)
+- [ ] InstallService responsibilities:
+  - [ ] Updates `SaveGameData.InstalledAppIds` (idempotent)
+  - [ ] Publishes `AppInstalledEvent(appId)`
+  - [ ] Does NOT directly manipulate UI registries/taskbar
+- [ ] UI integration:
+  - [ ] StoreController (UI) subscribes to `AppInstalledEvent` and refreshes AppRegistry/taskbar via existing UI code path
+  - [ ] Or AppRegistry listens and rebuilds itself when install events fire
+- [ ] Unity compiles with 0 errors and existing tests remain green
+- [ ] Docs:
+  - [ ] Append ADR-0017A to `Docs/ADR.md` describing the boundary fix (Systems owns Store logic; UI reacts via events)
+  - [ ] Update `Docs/TICKETS.md` completed sections when finished
 
 **Files allowed:**
-- `Assets/UI/Windows/Window.uxml`
-- `Assets/UI/Windows/Window.uss` (only if needed)
-- `Assets/Scripts/UI/Windows/WindowView.cs`
-- `Assets/Scripts/UI/Windows/WindowManager.cs`
+- `Assets/Scripts/Infrastructure/Store/**` (delete/move)
+- `Assets/Scripts/Systems/Store/**` (new)
+- `Assets/Scripts/UI/Apps/Store/**` (wire UI refresh on install event)
 - `Docs/ADR.md`
 - `Docs/TICKETS.md`
 
 **Test plan:**
-1. Play Bootstrap
-2. Open Terminal + File Manager
-3. Resize each window; confirm visible resizing
-4. Confirm logs show Frame.resolvedStyle matches computed size
-5. Confirm Console has 0 warnings/errors
+1. Unity recompiles with 0 errors
+2. Open Store, buy/install an app
+3. Confirm taskbar updates (via UI reaction) and persistence still works
 
 
 
@@ -71,3 +73,5 @@ Fix window resizing where resize math/logs run but the window does not visually 
 - **0016C** - Window instance safety + drag/resize clamp
 - **0016D** - Resize reliability via root pointer capture
 - **0016E** - Resize hot zone + hover highlight + debug logs
+- **0017** - Store + Purchase + Install pipeline
+- **0017A** - Store/Install boundary fix (move to Systems, remove UI deps)

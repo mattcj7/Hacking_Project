@@ -4,6 +4,8 @@ namespace HackingProject.UI.Apps
     {
         Terminal,
         FileManager,
-        Missions
+        Missions,
+        Store,
+        Notes
     }
 }

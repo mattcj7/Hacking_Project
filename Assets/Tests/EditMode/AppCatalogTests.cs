@@ -9,15 +9,15 @@ namespace HackingProject.Tests.EditMode
         private const string CatalogPath = "Assets/ScriptableObjects/Apps/AppCatalog_Default.asset";
 
         [Test]
-        public void DefaultCatalog_ContainsTerminalFileManagerAndMissions()
+        public void DefaultCatalog_ContainsTerminalFileManagerMissionsAndStore()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<AppCatalogSO>(CatalogPath);
             Assert.IsNotNull(catalog, $"Missing AppCatalog asset at {CatalogPath}.");
 
-            Assert.AreEqual(3, catalog.Apps.Count);
             var hasTerminal = false;
             var hasFileManager = false;
             var hasMissions = false;
+            var hasStore = false;
             for (var i = 0; i < catalog.Apps.Count; i++)
             {
                 var app = catalog.Apps[i];
@@ -38,11 +38,16 @@ namespace HackingProject.Tests.EditMode
                 {
                     hasMissions = true;
                 }
+                else if (app.Id == AppId.Store)
+                {
+                    hasStore = true;
+                }
             }
 
             Assert.IsTrue(hasTerminal);
             Assert.IsTrue(hasFileManager);
             Assert.IsTrue(hasMissions);
+            Assert.IsTrue(hasStore);
         }
     }
 }

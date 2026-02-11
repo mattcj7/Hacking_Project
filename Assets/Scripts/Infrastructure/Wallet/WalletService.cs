@@ -27,5 +27,21 @@ namespace HackingProject.Infrastructure.Wallet
             _credits += amount;
             _eventBus.Publish(new CreditsChangedEvent(previous, _credits, amount, reason));
         }
+
+        public bool TrySpendCredits(int amount, string reason)
+        {
+            if (amount <= 0)
+            {
+                return true;
+            }
+
+            if (_credits < amount)
+            {
+                return false;
+            }
+
+            AddCredits(-amount, reason);
+            return true;
+        }
     }
 }

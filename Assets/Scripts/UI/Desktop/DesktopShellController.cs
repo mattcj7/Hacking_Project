@@ -6,6 +6,7 @@ using HackingProject.Infrastructure.Vfs;
 using HackingProject.Infrastructure.Wallet;
 using HackingProject.UI.Apps;
 using HackingProject.UI.Windows;
+using HackingProject.Systems.Store;
 using UnityEngine;
 using UnityEngine.UIElements;
 #if UNITY_EDITOR
@@ -26,9 +27,13 @@ namespace HackingProject.UI.Desktop
         private const string ToastContainerName = "toast-container";
         private const string WindowTemplatePath = "Assets/UI/Windows/Window.uxml";
         private const string AppCatalogPath = "Assets/ScriptableObjects/Apps/AppCatalog_Default.asset";
+        private const string StoreCatalogPath = "Assets/ScriptableObjects/Store/StoreCatalog_Default.asset";
+        private const string PackageDatabasePath = "Assets/ScriptableObjects/Apps/AppPackageDatabase_Default.asset";
 
         [SerializeField] private VisualTreeAsset windowTemplate;
         [SerializeField] private AppCatalogSO appCatalog;
+        [SerializeField] private StoreCatalogSO storeCatalog;
+        [SerializeField] private AppPackageDatabaseSO appPackageDatabase;
 
         private Label _clockLabel;
         private Label _creditsLabel;
@@ -42,11 +47,14 @@ namespace HackingProject.UI.Desktop
         private ITimeServiceProvider _timeServiceProvider;
         private IMissionServiceProvider _missionServiceProvider;
         private IWalletServiceProvider _walletServiceProvider;
+        private IStoreServiceProvider _storeServiceProvider;
+        private IInstallServiceProvider _installServiceProvider;
         private IVfsProvider _vfsProvider;
         private ISaveGameDataProvider _saveDataProvider;
         private IDisposable _timeSubscription;
         private IDisposable _saveSessionSubscription;
         private IDisposable _creditsSubscription;
+        private IDisposable _appInstalledSubscription;
         private bool _loggedMissingTemplate;
         private bool _loggedMissingAppCatalog;
         private bool _loggedMissingTimeService;
@@ -54,6 +62,9 @@ namespace HackingProject.UI.Desktop
         private bool _loggedMissingWalletService;
         private bool _loggedMissingToastContainer;
         private bool _loggedMissingSaveProvider;
+        private bool _loggedMissingStoreCatalog;
+        private bool _loggedMissingPackageDatabase;
+        private bool _loggedMissingStoreService;
         private bool _hasStarted;
         private bool _sessionRestored;
 
@@ -164,9 +175,84 @@ namespace HackingProject.UI.Desktop
 #endif
                 }
 
+                if (appPackageDatabase == null)
+                {
+#if UNITY_EDITOR
+                    appPackageDatabase = AssetDatabase.LoadAssetAtPath<AppPackageDatabaseSO>(PackageDatabasePath);
+                    if (appPackageDatabase == null && !_loggedMissingPackageDatabase)
+                    {
+                        Debug.LogError($"[DesktopShellController] Missing AppPackageDatabase at '{PackageDatabasePath}' on '{gameObject.name}' in scene '{gameObject.scene.path}'.");
+                        _loggedMissingPackageDatabase = true;
+                    }
+#endif
+                }
+
+                if (storeCatalog == null)
+                {
+#if UNITY_EDITOR
+                    storeCatalog = AssetDatabase.LoadAssetAtPath<StoreCatalogSO>(StoreCatalogPath);
+                    if (storeCatalog == null && !_loggedMissingStoreCatalog)
+                    {
+                        Debug.LogError($"[DesktopShellController] Missing StoreCatalog at '{StoreCatalogPath}' on '{gameObject.name}' in scene '{gameObject.scene.path}'.");
+                        _loggedMissingStoreCatalog = true;
+                    }
+#endif
+                }
+
                 if (appCatalog != null)
                 {
-                    _appRegistry = new AppRegistry(appCatalog.Apps);
+                    var apps = new System.Collections.Generic.List<AppDefinitionSO>();
+                    for (var i = 0; i < appCatalog.Apps.Count; i++)
+                    {
+                        var app = appCatalog.Apps[i];
+                        if (app != null)
+                        {
+                            apps.Add(app);
+                        }
+                    }
+
+                    if (_saveDataProvider == null)
+                    {
+                        _saveDataProvider = FindSaveDataProvider();
+                    }
+
+                    var installed = _saveDataProvider?.SaveData?.InstalledAppIds;
+                    if (installed != null && appPackageDatabase != null)
+                    {
+                        for (var i = 0; i < installed.Count; i++)
+                        {
+                            var entry = installed[i];
+                            if (string.IsNullOrWhiteSpace(entry))
+                            {
+                                continue;
+                            }
+
+                            if (!Enum.TryParse(entry, out AppId appId))
+                            {
+                                continue;
+                            }
+
+                            if (appPackageDatabase.TryGetById(appId, out var app))
+                            {
+                                var exists = false;
+                                for (var j = 0; j < apps.Count; j++)
+                                {
+                                    if (apps[j] != null && apps[j].Id == appId)
+                                    {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!exists)
+                                {
+                                    apps.Add(app);
+                                }
+                            }
+                        }
+                    }
+
+                    _appRegistry = new AppRegistry(apps);
                 }
             }
 
@@ -185,6 +271,7 @@ namespace HackingProject.UI.Desktop
             TryHookTimeService();
             TryHookNotifications();
             TryHookMissionService();
+            TryHookStoreServices();
             TryHookWalletService();
             TryHookVfs();
             TryHookSession();
@@ -196,6 +283,7 @@ namespace HackingProject.UI.Desktop
             TryHookTimeService();
             TryHookNotifications();
             TryHookMissionService();
+            TryHookStoreServices();
             TryHookWalletService();
             TryHookVfs();
             TryHookSession();
@@ -209,6 +297,8 @@ namespace HackingProject.UI.Desktop
             _saveSessionSubscription = null;
             _creditsSubscription?.Dispose();
             _creditsSubscription = null;
+            _appInstalledSubscription?.Dispose();
+            _appInstalledSubscription = null;
             _toastController?.Dispose();
             _toastController = null;
         }
@@ -362,6 +452,50 @@ namespace HackingProject.UI.Desktop
             _appLauncher.SetMissionService(_missionServiceProvider.MissionService);
         }
 
+        private void TryHookStoreServices()
+        {
+            if (_appLauncher == null)
+            {
+                return;
+            }
+
+            if (_storeServiceProvider == null)
+            {
+                _storeServiceProvider = FindStoreServiceProvider();
+            }
+
+            if (_installServiceProvider == null)
+            {
+                _installServiceProvider = FindInstallServiceProvider();
+            }
+
+            if (_storeServiceProvider?.StoreService == null || _installServiceProvider?.InstallService == null)
+            {
+                if (_hasStarted && !_loggedMissingStoreService)
+                {
+                    Debug.LogWarning("[DesktopShellController] Store/Install service provider not found.");
+                    _loggedMissingStoreService = true;
+                }
+
+                return;
+            }
+
+            if (storeCatalog != null)
+            {
+                _appLauncher.SetStoreServices(storeCatalog, _storeServiceProvider.StoreService, _installServiceProvider.InstallService);
+            }
+
+            if (_timeServiceProvider == null)
+            {
+                _timeServiceProvider = FindTimeServiceProvider();
+            }
+
+            if (_timeServiceProvider?.EventBus != null && _appInstalledSubscription == null)
+            {
+                _appInstalledSubscription = _timeServiceProvider.EventBus.Subscribe<AppInstalledEvent>(OnAppInstalled);
+            }
+        }
+
         private void TryHookVfs()
         {
             if (_appLauncher == null)
@@ -428,6 +562,24 @@ namespace HackingProject.UI.Desktop
         private void OnCreditsChanged(CreditsChangedEvent evt)
         {
             UpdateCredits(evt.CurrentCredits);
+        }
+
+        private void OnAppInstalled(AppInstalledEvent evt)
+        {
+            if (_taskbarApps == null || _appRegistry == null || _appLauncher == null)
+            {
+                return;
+            }
+
+            if (appPackageDatabase != null && !string.IsNullOrWhiteSpace(evt.AppId) && Enum.TryParse(evt.AppId, out AppId appId))
+            {
+                if (appPackageDatabase.TryGetById(appId, out var app))
+                {
+                    _appRegistry.AddInstalledApp(app);
+                }
+            }
+
+            PopulateTaskbar();
         }
 
         private void UpdateClock(DateTime time)
@@ -507,6 +659,34 @@ namespace HackingProject.UI.Desktop
             for (var i = 0; i < behaviours.Length; i++)
             {
                 if (behaviours[i] is IMissionServiceProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
+        }
+
+        private static IStoreServiceProvider FindStoreServiceProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IStoreServiceProvider provider)
+                {
+                    return provider;
+                }
+            }
+
+            return null;
+        }
+
+        private static IInstallServiceProvider FindInstallServiceProvider()
+        {
+            var behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            for (var i = 0; i < behaviours.Length; i++)
+            {
+                if (behaviours[i] is IInstallServiceProvider provider)
                 {
                     return provider;
                 }

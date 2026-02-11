@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace HackingProject.Infrastructure.Save
 {
@@ -9,6 +10,8 @@ namespace HackingProject.Infrastructure.Save
         public string LastSavedUtcIso;
         public int Credits;
         public OsSessionData OsSession;
+        public List<string> OwnedAppIds;
+        public List<string> InstalledAppIds;
 
         public static SaveGameData CreateDefault()
         {
@@ -17,7 +20,9 @@ namespace HackingProject.Infrastructure.Save
                 Version = 1,
                 Credits = 0,
                 LastSavedUtcIso = string.Empty,
-                OsSession = new OsSessionData()
+                OsSession = new OsSessionData(),
+                OwnedAppIds = new List<string>(),
+                InstalledAppIds = new List<string>()
             };
         }
     }

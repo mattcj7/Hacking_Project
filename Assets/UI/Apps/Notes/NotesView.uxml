@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="Assets/UI/Theme/HackingOSTheme.uss" />
+  <ui:Style src="NotesView.uss" />
+  <ui:VisualElement class="notes-root">
+    <ui:Label name="notes-path" text="/home/user/docs/notes.txt" class="notes-path" />
+    <ui:ScrollView name="notes-scroll" class="notes-scroll">
+      <ui:Label name="notes-content" text="" class="notes-content" />
+    </ui:ScrollView>
+  </ui:VisualElement>
+</ui:UXML>

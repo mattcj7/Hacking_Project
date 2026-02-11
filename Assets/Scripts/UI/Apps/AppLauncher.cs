@@ -4,6 +4,7 @@ using HackingProject.Infrastructure.Events;
 using HackingProject.Infrastructure.Missions;
 using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Vfs;
+using HackingProject.Systems.Store;
 using HackingProject.UI.Windows;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -18,6 +19,9 @@ namespace HackingProject.UI.Apps
         private readonly Vector2 _spawnOffset = new Vector2(48f, 36f);
         private EventBus _eventBus;
         private MissionService _missionService;
+        private StoreCatalogSO _storeCatalog;
+        private StoreService _storeService;
+        private InstallService _installService;
         private VirtualFileSystem _vfs;
         private OsSessionData _sessionData;
 
@@ -42,6 +46,13 @@ namespace HackingProject.UI.Apps
         public void SetMissionService(MissionService missionService)
         {
             _missionService = missionService;
+        }
+
+        public void SetStoreServices(StoreCatalogSO catalog, StoreService storeService, InstallService installService)
+        {
+            _storeCatalog = catalog;
+            _storeService = storeService;
+            _installService = installService;
         }
 
         public void SetSessionData(OsSessionData sessionData)
@@ -81,6 +92,8 @@ namespace HackingProject.UI.Apps
             var view = _windowManager.CreateWindow(displayName, position);
             if (app.DefaultWindowSize != Vector2.zero)
             {
+                view.Frame.style.width = app.DefaultWindowSize.x;
+                view.Frame.style.height = app.DefaultWindowSize.y;
                 view.Root.style.width = app.DefaultWindowSize.x;
                 view.Root.style.height = app.DefaultWindowSize.y;
             }
@@ -239,6 +252,36 @@ namespace HackingProject.UI.Apps
                 view.ContentRoot.Clear();
                 view.ContentRoot.Add(root);
                 var controller = new MissionsController(root, _missionService, _eventBus);
+                controller.Initialize();
+                return true;
+            }
+
+            if (app.Id == AppId.Store)
+            {
+                if (_storeCatalog == null || _storeService == null || _installService == null || _eventBus == null)
+                {
+                    return false;
+                }
+
+                var root = app.ViewTemplate.CloneTree();
+                view.ContentRoot.Clear();
+                view.ContentRoot.Add(root);
+                var controller = new StoreController(root, _storeCatalog, _storeService, _installService, _eventBus);
+                controller.Initialize();
+                return true;
+            }
+
+            if (app.Id == AppId.Notes)
+            {
+                if (_vfs == null)
+                {
+                    return false;
+                }
+
+                var root = app.ViewTemplate.CloneTree();
+                view.ContentRoot.Clear();
+                view.ContentRoot.Add(root);
+                var controller = new NotesController(root, _vfs);
                 controller.Initialize();
                 return true;
             }

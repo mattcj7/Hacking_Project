@@ -6,6 +6,7 @@ using HackingProject.Infrastructure.Save;
 using HackingProject.Infrastructure.Time;
 using HackingProject.Infrastructure.Vfs;
 using HackingProject.Infrastructure.Wallet;
+using HackingProject.Systems.Store;
 using UnityEngine;
 using UnityEngine.InputSystem;
 #if UNITY_EDITOR
@@ -14,7 +15,7 @@ using UnityEditor;
 
 namespace HackingProject.Game
 {
-    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider, IMissionServiceProvider, IWalletServiceProvider
+    public sealed class GameBootstrapper : MonoBehaviour, ITimeServiceProvider, IVfsProvider, ISaveGameDataProvider, IMissionServiceProvider, IWalletServiceProvider, IStoreServiceProvider, IInstallServiceProvider
     {
         private const string MissionCatalogPath = "Assets/ScriptableObjects/Missions/MissionCatalog_Default.asset";
 
@@ -29,6 +30,8 @@ namespace HackingProject.Game
         private TimeService _timeService;
         private VirtualFileSystem _vfs;
         private WalletService _walletService;
+        private StoreService _storeService;
+        private InstallService _installService;
         private IDisposable _stateChangedSubscription;
         private IDisposable _creditsSubscription;
         private IDisposable _missionCompletedSubscription;
@@ -40,6 +43,8 @@ namespace HackingProject.Game
         public SaveGameData SaveData => _saveData;
         public MissionService MissionService => _missionService;
         public WalletService WalletService => _walletService;
+        public StoreService StoreService => _storeService;
+        public InstallService InstallService => _installService;
 
         private void Awake()
         {
@@ -73,6 +78,7 @@ namespace HackingProject.Game
             {
                 _saveData = loaded;
                 EnsureSessionData();
+                EnsureStoreData();
                 _eventBus.Publish(new SaveLoadedEvent(_saveData, _saveService.LastLoadSource));
                 Debug.Log($"[SaveService] Loaded save ({_saveService.LastLoadSource}).");
             }
@@ -85,6 +91,8 @@ namespace HackingProject.Game
 
             _walletService = new WalletService(_eventBus, _saveData?.Credits ?? 0);
             _creditsSubscription = _eventBus.Subscribe<CreditsChangedEvent>(OnCreditsChanged);
+            _storeService = new StoreService(_eventBus, _walletService, _saveData, _notificationService);
+            _installService = new InstallService(_eventBus, _saveData);
             _missionService = new MissionService(_eventBus, _walletService);
             if (missionCatalog != null && missionCatalog.Missions != null)
             {
@@ -182,6 +190,24 @@ namespace HackingProject.Game
             if (_saveData.OsSession == null)
             {
                 _saveData.OsSession = new OsSessionData();
+            }
+        }
+
+        private void EnsureStoreData()
+        {
+            if (_saveData == null)
+            {
+                return;
+            }
+
+            if (_saveData.OwnedAppIds == null)
+            {
+                _saveData.OwnedAppIds = new System.Collections.Generic.List<string>();
+            }
+
+            if (_saveData.InstalledAppIds == null)
+            {
+                _saveData.InstalledAppIds = new System.Collections.Generic.List<string>();
             }
         }
 
